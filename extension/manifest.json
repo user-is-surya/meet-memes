@@ -1,15 +1,21 @@
 {
   "manifest_version": 3,
   "name": "Meet Memes",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Gesture-triggered meme effects for Google Meet: Thanos snap, Absolute Cinema, Noice, and more.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "permissions": ["storage", "unlimitedStorage", "alarms"],
-  "host_permissions": ["https://meet.google.com/*"],
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://meet.google.com/*"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -28,21 +34,34 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://meet.google.com/*"],
-      "js": ["inject.js"],
+      "matches": [
+        "https://meet.google.com/*"
+      ],
+      "js": [
+        "inject.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://meet.google.com/*"],
-      "js": ["content-loader.js"],
+      "matches": [
+        "https://meet.google.com/*"
+      ],
+      "js": [
+        "content-loader.js"
+      ],
       "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["src/*", "engine/*"],
-      "matches": ["https://meet.google.com/*"]
+      "resources": [
+        "src/*",
+        "engine/*"
+      ],
+      "matches": [
+        "https://meet.google.com/*"
+      ]
     }
   ]
 }

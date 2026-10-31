@@ -9,6 +9,18 @@ import {
 } from '../vendor/mediapipe/vision_bundle.mjs';
 
 const PARENT_ORIGIN = 'https://meet.google.com';
+
+// MediaPipe's WASM prints routine startup logs ("I1031 …", "W1031 …", "INFO: Created
+// TensorFlow Lite …", "Graph successfully started") through console.error/warn, which
+// fills chrome://extensions with fake errors. Drop those; keep everything else.
+const MEDIAPIPE_NOISE = /^([IWE]\d{4} |INFO: |Graph successfully|Using NORM_RECT|Feedback manager)/;
+for (const level of ['log', 'info', 'warn', 'error']) {
+  const original = console[level].bind(console);
+  console[level] = (...args) => {
+    if (typeof args[0] === 'string' && MEDIAPIPE_NOISE.test(args[0])) return;
+    original(...args);
+  };
+}
 const url = (p) => new URL(p, location.href).href;
 
 let gesture = null, face = null, segmenter = null;

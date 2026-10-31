@@ -65,6 +65,9 @@ class App {
 
     this.src.addEventListener('meet-memes-frame', () => this.onFrame());
     window.addEventListener('keydown', (e) => this.onKey(e), true);
+    chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+      if (msg && msg.type === 'status') reply(this.status());
+    });
     onStorageChanged(async () => {
       this.settings = await getSettings();
       await this.loadMemes();
@@ -110,6 +113,7 @@ class App {
     const now = performance.now();
     const { src, fx, fctx } = this;
     const w = src.width, h = src.height;
+    this.lastFrameAt = now;
     if (fx.width !== w || fx.height !== h) { fx.width = w; fx.height = h; }
 
     if (!this.greeted && this.engine.status === 'ready') {
@@ -176,6 +180,7 @@ class App {
       const { active, info } = m.trigger.update(this.det, now);
       if (active && !m.wasActive && now >= m.cooldownUntil) {
         m.effect.fire(info, now);
+        this.lastFired = { id: m.def.name, at: now };
         m.cooldownUntil = now + (m.def.cooldownMs ?? 2500);
       }
       m.effect.setHeld(active, now);
@@ -202,6 +207,25 @@ class App {
     e.preventDefault();
     e.stopPropagation();
     meme.effect.fire({ hand: { x: 0.5, y: 0.6 } }, performance.now(), { hotkey: true });
+    this.lastFired = { id: meme.def.name + ' (hotkey)', at: performance.now() };
+  }
+
+  // Snapshot for the popup's status panel.
+  status() {
+    const now = performance.now();
+    return {
+      enabled: this.settings.enabled,
+      mode: this.settings.mode,
+      cameraLive: now - (this.lastFrameAt || -Infinity) < 2000,
+      frameSize: `${this.src.width}x${this.src.height}`,
+      engine: this.engine.status,
+      engineError: this.engine.error,
+      memes: this.memes.length,
+      hands: this.det.hands.map((h) => h.gesture.name),
+      face: !!this.det.face,
+      mic: this.audio.running,
+      lastFired: this.lastFired && { id: this.lastFired.id, agoMs: Math.round(now - this.lastFired.at) },
+    };
   }
 
   debugLines(active) {

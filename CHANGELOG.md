@@ -2,6 +2,11 @@
 
 Each `## x.y.z` section becomes the notes of that GitHub release.
 
+## 0.1.1
+
+- New **Status in this tab** panel in the popup: shows whether the camera is hooked, gesture detection is ready, and what it sees (face, hands, last meme fired).
+- Silenced MediaPipe startup logs that showed up as dozens of fake errors in chrome://extensions.
+
 ## 0.1.0
 
 First release.

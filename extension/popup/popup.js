@@ -40,7 +40,48 @@ function renderUpdate(update) {
   );
 }
 
+// Live diagnostics from the content script in the active tab.
+async function renderStatus() {
+  const box = $('status');
+  const line = (state, text, hint) => [
+    el('div', { className: 'line ' + state, textContent: ' ' + text }),
+    hint ? el('div', { className: 'hint', textContent: hint }) : null,
+  ].filter(Boolean);
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.url || !tab.url.startsWith('https://meet.google.com/')) {
+    box.replaceChildren(...line('wait', 'Open a Google Meet tab to use Meet Memes.'));
+    return;
+  }
+  let s;
+  try {
+    s = await chrome.tabs.sendMessage(tab.id, { type: 'status' });
+  } catch {
+    s = null;
+  }
+  if (!s) {
+    box.replaceChildren(...line('bad', 'Not running in this tab yet.', 'Refresh the Meet tab (the extension only attaches when the page loads).'));
+    return;
+  }
+  const rows = [
+    ...line(s.cameraLive ? 'ok' : 'bad',
+      s.cameraLive ? `Camera hooked (${s.frameSize})` : 'No camera frames',
+      s.cameraLive ? '' : 'Turn your camera on in Meet. If it is on, refresh the tab so the extension loads before Meet grabs the camera.'),
+    ...line(s.engine === 'ready' ? 'ok' : s.engine === 'error' ? 'bad' : 'wait',
+      s.engine === 'ready' ? 'Gesture detection ready' : s.engine === 'error' ? 'Gesture detection failed' : 'Gesture detection loading…',
+      s.engine === 'error' ? s.engineError : ''),
+  ];
+  if (s.engine === 'ready' && s.cameraLive) {
+    rows.push(...line(s.face ? 'ok' : 'wait', s.face ? 'Face visible' : 'No face detected'));
+    rows.push(...line(s.hands.length ? 'ok' : 'wait', s.hands.length ? `Hands: ${s.hands.join(', ')}` : 'No hands in view'));
+  }
+  if (s.lastFired) rows.push(...line('ok', `Last meme: ${s.lastFired.id}, ${Math.round(s.lastFired.agoMs / 1000)}s ago`));
+  if (!s.enabled) rows.push(...line('bad', 'Turned off (switch at the top, or Alt+Shift+0)'));
+  box.replaceChildren(...rows);
+}
+
 async function main() {
+  renderStatus();
+  setInterval(renderStatus, 1000);
   const settings = await getSettings();
   $('version').textContent = 'v' + chrome.runtime.getManifest().version;
 

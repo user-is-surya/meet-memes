@@ -14,6 +14,12 @@
     footer { margin-top: 14px; display: flex; gap: 8px; }
     footer > * { flex: 1; text-align: center; }
     .off .memes, .off .settings { opacity: .45; pointer-events: none; }
+    .status { display: grid; gap: 4px; }
+    .status .line { display: flex; gap: 8px; }
+    .status .ok::before { content: '✓'; color: #4ade80; font-weight: 700; }
+    .status .bad::before { content: '✗'; color: #f87171; font-weight: 700; }
+    .status .wait::before { content: '…'; color: #facc15; font-weight: 700; }
+    .status .hint { color: var(--muted); font-size: 12px; padding-left: 16px; }
   </style>
 </head>
 <body>
@@ -29,6 +35,9 @@
   </header>
 
   <div id="update" class="banner" hidden style="margin-top:12px"></div>
+
+  <h2>Status in this tab</h2>
+  <div class="card status" id="status">Checking…</div>
 
   <div id="body">
     <h2>Who sees the effects</h2>
