@@ -1,0 +1,20 @@
+{
+  "name": "Feel the aura",
+  "description": "A glowing aura surrounds you while you point at your head.",
+  "how": "Point both index fingers at your head and hold.",
+  "hotkey": "Alt+Shift+6",
+  "cooldownMs": 2500,
+  "trigger": { "type": "hands-on-head", "hands": 2, "holdMs": 500 },
+  "render": {
+    "type": "aura",
+    "asset": "aura.gif",
+    "color": "#b26bff",
+    "position": "bottom-right",
+    "size": 0.35,
+    "caption": "+1000 AURA",
+    "hold": true,
+    "lingerMs": 1500,
+    "minMs": 2000,
+    "durationMs": 4000
+  }
+}

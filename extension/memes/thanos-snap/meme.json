@@ -1,0 +1,14 @@
+{
+  "name": "Thanos snap",
+  "description": "Snap your fingers and turn to dust. Snap again to come back.",
+  "how": "Snap your fingers (thumb + middle finger) where the camera can see your hand.",
+  "hotkey": "Alt+Shift+1",
+  "cooldownMs": 1500,
+  "trigger": { "type": "snap" },
+  "render": {
+    "type": "thanos",
+    "spreadMs": 1800,
+    "wind": 1,
+    "autoReturnMs": 20000
+  }
+}

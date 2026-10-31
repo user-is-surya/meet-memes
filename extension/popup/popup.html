@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Meet Memes</title>
+  <link rel="stylesheet" href="ui.css">
+  <style>
+    body { width: 360px; padding: 14px; }
+    header img { width: 28px; height: 28px; }
+    header h1 { font-size: 16px; }
+    .meme .name { font-weight: 600; }
+    .meme .how { color: var(--muted); font-size: 12px; }
+    .settings { display: grid; gap: 8px; }
+    footer { margin-top: 14px; display: flex; gap: 8px; }
+    footer > * { flex: 1; text-align: center; }
+    .off .memes, .off .settings { opacity: .45; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <header class="row">
+    <img src="../icons/icon48.png" alt="">
+    <div class="grow">
+      <h1>Meet Memes</h1>
+      <div class="muted small" id="version"></div>
+    </div>
+    <label class="switch" title="Turn everything on/off (Alt+Shift+0)">
+      <input type="checkbox" id="enabled"><span></span>
+    </label>
+  </header>
+
+  <div id="update" class="banner" hidden style="margin-top:12px"></div>
+
+  <div id="body">
+    <h2>Who sees the effects</h2>
+    <div class="settings">
+      <div class="segmented">
+        <input type="radio" name="mode" id="mode-everyone" value="everyone"><label for="mode-everyone">Everyone in the call</label>
+        <input type="radio" name="mode" id="mode-local" value="local"><label for="mode-local">Only me (preview)</label>
+      </div>
+      <div class="row"><span class="grow">Show preview window</span><label class="switch"><input type="checkbox" id="showPreview"><span></span></label></div>
+      <div class="row"><span class="grow">Use mic to confirm snaps</span><label class="switch"><input type="checkbox" id="snapUsesMic"><span></span></label></div>
+      <div class="row"><span class="grow">Debug overlay (landmarks)</span><label class="switch"><input type="checkbox" id="debug"><span></span></label></div>
+    </div>
+
+    <h2>Memes</h2>
+    <div class="list memes" id="memes"></div>
+  </div>
+
+  <footer>
+    <button class="primary" id="manage">Add your own memes</button>
+    <button id="check">Check for updates</button>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

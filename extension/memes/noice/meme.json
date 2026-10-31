@@ -1,0 +1,16 @@
+{
+  "name": "Noice",
+  "description": "Thumbs up and the Noice GIF pops up.",
+  "how": "Give a thumbs up to the camera.",
+  "hotkey": "Alt+Shift+3",
+  "cooldownMs": 3000,
+  "trigger": { "type": "gesture", "gesture": "Thumb_Up", "minScore": 0.65, "holdMs": 300 },
+  "render": {
+    "type": "overlay",
+    "asset": "noice.gif",
+    "position": "bottom-right",
+    "size": 0.5,
+    "durationMs": 2800,
+    "fallbackText": "NOICE 👌"
+  }
+}

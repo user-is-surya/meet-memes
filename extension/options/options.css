@@ -1,0 +1,40 @@
+main { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; }
+header h1 { font-size: 22px; }
+header p { margin: 2px 0 0; }
+
+.form { display: grid; grid-template-columns: 240px 1fr; gap: 18px; padding: 16px; }
+@media (max-width: 640px) { .form { grid-template-columns: 1fr; } }
+
+.drop {
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 12px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.drop:hover, .drop.over { border-color: var(--accent); }
+.drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop img { max-width: 100%; max-height: 260px; border-radius: 6px; }
+
+.fields { display: grid; gap: 10px; align-content: start; }
+.fields label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+.fields fieldset { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px 10px; }
+.fields legend { color: var(--muted); font-size: 12px; padding: 0 4px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+
+.item { display: flex; align-items: center; gap: 12px; }
+.item .pic {
+  width: 64px; height: 48px; border-radius: 6px; object-fit: cover; background: var(--panel-2); flex: none;
+  display: grid; place-items: center; font-size: 22px;
+}
+.item .name { font-weight: 600; }
+.item .meta { color: var(--muted); font-size: 12px; }
+.item .actions { display: flex; gap: 6px; align-items: center; }
+.item .actions input[type=file] { display: none; }
+.empty { color: var(--muted); padding: 14px; text-align: center; }

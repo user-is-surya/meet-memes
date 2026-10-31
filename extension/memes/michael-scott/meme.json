@@ -1,0 +1,15 @@
+{
+  "name": "Michael Scott: No, God, please no",
+  "description": "Full-screen Michael Scott despair.",
+  "how": "Cover your face with both hands and hold.",
+  "hotkey": "Alt+Shift+4",
+  "cooldownMs": 4000,
+  "trigger": { "type": "hands-over-face", "hands": 2, "holdMs": 700 },
+  "render": {
+    "type": "fullscreen",
+    "asset": "michael.gif",
+    "fit": "contain",
+    "durationMs": 3500,
+    "fallbackText": "NO, GOD! PLEASE, NO!"
+  }
+}

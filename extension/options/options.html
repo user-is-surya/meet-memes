@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Meet Memes · Your memes</title>
+  <link rel="stylesheet" href="../popup/ui.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main>
+    <header class="row">
+      <img src="../icons/icon48.png" alt="" width="36" height="36">
+      <div class="grow">
+        <h1>Your memes</h1>
+        <p class="muted">Attach your own image or GIF to any action. Everything here is saved only in your browser.</p>
+      </div>
+    </header>
+
+    <h2>Add a meme</h2>
+    <form id="add" class="card form">
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept="image/png,image/jpeg,image/gif,image/webp" required>
+        <img id="thumb" alt="" hidden>
+        <span id="drop-text">Drop an image or GIF here, or click to choose<br><span class="muted small">PNG, JPG, GIF or WebP · up to 8 MB</span></span>
+      </label>
+
+      <div class="fields">
+        <label>Name<input type="text" id="name" placeholder="e.g. Surprised Pikachu" required maxlength="60"></label>
+        <label>Action that triggers it<select id="action"></select></label>
+        <label>Style<select id="style"></select></label>
+        <label data-for="overlay">Position<select id="position"></select></label>
+        <label data-for="overlay">Size <span class="muted small" id="size-out"></span><input type="range" id="size" min="0.15" max="0.9" step="0.05" value="0.45"></label>
+        <label>Caption (optional)<input type="text" id="caption" placeholder="Big Impact text" maxlength="40"></label>
+        <label>Show for (seconds)<input type="number" id="duration" min="1" max="15" step="0.5" value="3"></label>
+        <label>Hotkey<select id="hotkey"></select></label>
+        <fieldset data-for="face-in-frame">
+          <legend>Where your face goes (as % of the image)</legend>
+          <div class="grid4">
+            <label>Centre X<input type="number" id="slot-x" min="0" max="100" value="50"></label>
+            <label>Centre Y<input type="number" id="slot-y" min="0" max="100" value="40"></label>
+            <label>Width<input type="number" id="slot-w" min="5" max="100" value="30"></label>
+            <label>Height<input type="number" id="slot-h" min="5" max="100" value="40"></label>
+          </div>
+        </fieldset>
+        <div class="row">
+          <span class="grow muted small" id="form-msg"></span>
+          <button class="primary" type="submit">Add meme</button>
+        </div>
+      </div>
+    </form>
+
+    <h2>Your custom memes</h2>
+    <div id="custom" class="list"></div>
+
+    <h2>Built-in memes</h2>
+    <p class="muted small">Swap any built-in meme's image for your own. Thanos has no image (it's all you).</p>
+    <div id="bundled" class="list"></div>
+  </main>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

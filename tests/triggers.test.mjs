@@ -1,0 +1,127 @@
+// Unit tests for gesture triggers using synthetic MediaPipe-style hand landmarks.
+// Run with: npm test
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createTrigger } from '../extension/src/triggers/index.js';
+
+// Builds 21 hand landmarks. Fingers point along `dir` from the wrist; `s` is the
+// wrist→knuckle length. Each finger is 'ext' (extended) or 'curl' (folded into the palm).
+function hand({ x, y, s = 0.06, dir = { x: 0, y: -1 }, fingers = {}, thumbTip, gesture = 'None', handedness = 'Right' }) {
+  const side = { x: -dir.y, y: dir.x };
+  const at = (a, b) => ({ x: x + (dir.x * a + side.x * b) * s, y: y + (dir.y * a + side.y * b) * s, z: 0 });
+  const lm = new Array(21);
+  lm[0] = at(0, 0);
+  lm[1] = at(0.3, -0.3); lm[2] = at(0.6, -0.5); lm[3] = at(0.9, -0.6);
+  lm[4] = thumbTip ? { ...thumbTip, z: 0 } : at(1.2, -0.6);
+  const cols = { index: [5, -0.3], middle: [9, -0.1], ring: [13, 0.1], pinky: [17, 0.3] };
+  for (const [name, [base, b]] of Object.entries(cols)) {
+    const curled = (fingers[name] || 'ext') === 'curl';
+    lm[base] = at(1, b);
+    lm[base + 1] = at(curled ? 1.25 : 1.3, b);
+    lm[base + 2] = at(curled ? 1.1 : 1.6, b);
+    lm[base + 3] = at(curled ? 0.9 : 1.9, b);
+  }
+  return { landmarks: lm, handedness, gesture: { name: gesture, score: 0.9 } };
+}
+
+const FACE = { box: { x: 0.4, y: 0.3, w: 0.2, h: 0.3 }, nose: { x: 0.5, y: 0.45 }, blendshapes: {} };
+const det = (hands, face = FACE) => ({ hands, face, aspect: 1 });
+const ctx = { audio: () => null };
+const fist = { index: 'curl', middle: 'curl', ring: 'curl', pinky: 'curl' };
+
+test('gesture trigger respects holdMs', () => {
+  const t = createTrigger({ type: 'gesture', gesture: 'Thumb_Up', holdMs: 300 }, ctx);
+  const d = det([hand({ x: 0.5, y: 0.5, gesture: 'Thumb_Up' })]);
+  assert.equal(t.update(d, 0).active, false);
+  assert.equal(t.update(d, 350).active, true);
+  assert.equal(t.update(det([hand({ x: 0.5, y: 0.5 })]), 400).active, false);
+});
+
+test('both hands up beside the head (Absolute Cinema)', () => {
+  const t = createTrigger({ type: 'both-hands-up', holdMs: 0 }, ctx);
+  const up = det([hand({ x: 0.2, y: 0.35 }), hand({ x: 0.8, y: 0.35, handedness: 'Left' })]);
+  assert.equal(t.update(up, 0).active, true);
+  const oneHand = det([hand({ x: 0.2, y: 0.35 })]);
+  assert.equal(t.update(oneHand, 10).active, false);
+  const handsLow = det([hand({ x: 0.2, y: 0.9 }), hand({ x: 0.8, y: 0.9 })]);
+  assert.equal(t.update(handsLow, 20).active, false);
+});
+
+test('hands over face (Michael Scott)', () => {
+  const t = createTrigger({ type: 'hands-over-face', hands: 2, holdMs: 0 }, ctx);
+  const covering = det([hand({ x: 0.45, y: 0.45, s: 0.04 }), hand({ x: 0.55, y: 0.45, s: 0.04 })]);
+  assert.equal(t.update(covering, 0).active, true);
+  const aside = det([hand({ x: 0.1, y: 0.45, s: 0.04 }), hand({ x: 0.9, y: 0.45, s: 0.04 })]);
+  assert.equal(t.update(aside, 10).active, false);
+});
+
+test('index fingers pointing at the head (Feel the aura)', () => {
+  const t = createTrigger({ type: 'hands-on-head', hands: 2, holdMs: 0 }, ctx);
+  const point = { middle: 'curl', ring: 'curl', pinky: 'curl' };
+  const right = hand({ x: 0.8, y: 0.42, dir: { x: -1, y: 0 }, fingers: point });
+  const left = hand({ x: 0.2, y: 0.42, dir: { x: 1, y: 0 }, fingers: point, handedness: 'Left' });
+  assert.equal(t.update(det([right, left]), 0).active, true);
+  // Pointing away from the head does not count.
+  const away = hand({ x: 0.8, y: 0.42, dir: { x: 1, y: 0 }, fingers: point });
+  assert.equal(t.update(det([away, left]), 10).active, false);
+  // Open hands (not pointing) do not count.
+  const open = hand({ x: 0.8, y: 0.42, dir: { x: -1, y: 0 } });
+  assert.equal(t.update(det([open, left]), 20).active, false);
+});
+
+test('throw: fist then a fast sweep fires once', () => {
+  const t = createTrigger({ type: 'throw' }, ctx);
+  let fired = 0;
+  for (const [time, x] of [[0, 0.3], [100, 0.3], [200, 0.3], [300, 0.32]]) {
+    if (t.update(det([hand({ x, y: 0.5, fingers: fist })]), time).active) fired++;
+  }
+  if (t.update(det([hand({ x: 0.8, y: 0.45 })]), 400).active) fired++;
+  if (t.update(det([hand({ x: 0.85, y: 0.45 })]), 450).active) fired++;
+  assert.equal(fired, 1);
+});
+
+test('throw: slow movement does not fire', () => {
+  const t = createTrigger({ type: 'throw' }, ctx);
+  let fired = false;
+  for (let i = 0; i <= 20; i++) {
+    fired ||= t.update(det([hand({ x: 0.2 + i * 0.03, y: 0.5, fingers: i < 3 ? fist : {} })]), i * 100).active;
+  }
+  assert.equal(fired, false);
+});
+
+test('snap without mic: pinch then middle finger into the palm', () => {
+  const t = createTrigger({ type: 'snap' }, ctx);
+  const open = hand({ x: 0.5, y: 0.6 });
+  const middleTip = open.landmarks[12];
+  const pinch = hand({ x: 0.5, y: 0.6, fingers: { index: 'curl' }, thumbTip: { x: middleTip.x + 0.005, y: middleTip.y } });
+  const snapped = hand({ x: 0.5, y: 0.6, fingers: { index: 'curl', middle: 'curl' } });
+  assert.equal(t.update(det([pinch]), 0).active, false);
+  assert.equal(t.update(det([pinch]), 60).active, false);
+  assert.equal(t.update(det([snapped]), 130).active, true);
+  // Releasing a pinch slowly (well after it) does not fire.
+  t.update(det([pinch]), 1000);
+  assert.equal(t.update(det([snapped]), 1600).active, false);
+});
+
+test('snap with mic: needs the sound after a pinch', () => {
+  const audio = { running: true, lastSpikeAt: -Infinity, spikeSince(t) { return this.lastSpikeAt >= t; } };
+  const t = createTrigger({ type: 'snap' }, { audio: () => audio });
+  const open = hand({ x: 0.5, y: 0.6 });
+  const tip = open.landmarks[12];
+  const pinch = hand({ x: 0.5, y: 0.6, thumbTip: { x: tip.x, y: tip.y } });
+  assert.equal(t.update(det([pinch]), 0).active, false);
+  assert.equal(t.update(det([open]), 80).active, false); // released but silent
+  audio.lastSpikeAt = 100;
+  assert.equal(t.update(det([open]), 150).active, true);
+});
+
+test('any-of trigger arrays and hotkey-only memes', () => {
+  assert.equal(createTrigger(null, ctx), null);
+  const t = createTrigger([
+    { type: 'gesture', gesture: 'Victory' },
+    { type: 'expression', blendshapes: { jawOpen: 0.6 } },
+  ], ctx);
+  const face = { ...FACE, blendshapes: { jawOpen: 0.8 } };
+  assert.equal(t.update(det([], face), 0).active, true);
+  assert.equal(t.update(det([]), 10).active, false);
+});

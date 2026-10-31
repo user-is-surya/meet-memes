@@ -1,0 +1,37 @@
+name: Release
+
+# Push a tag like v0.2.0 (matching extension/manifest.json) to publish a release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+      - run: npm test
+      - name: Bundle MediaPipe and models
+        run: npm run setup
+      - name: Package extension
+        run: cd extension && zip -r "../meet-memes-${GITHUB_REF_NAME}.zip" . -x '.*'
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes=$(awk -v v="## ${version}" 'index($0, v) == 1 {f=1; next} /^## /{f=0} f' CHANGELOG.md)
+          gh release create "$GITHUB_REF_NAME" "meet-memes-${GITHUB_REF_NAME}.zip" \
+            --title "Meet Memes ${GITHUB_REF_NAME}" \
+            --notes "${notes:-See CHANGELOG.md}"

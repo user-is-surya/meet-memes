@@ -1,0 +1,20 @@
+{
+  "name": "Absolute Cinema",
+  "description": "Your face in the centre of the Absolute Cinema poster.",
+  "how": "Raise both open hands up beside your head and hold.",
+  "hotkey": "Alt+Shift+2",
+  "cooldownMs": 2500,
+  "trigger": { "type": "both-hands-up", "holdMs": 400 },
+  "render": {
+    "type": "face-in-frame",
+    "asset": "poster.png",
+    "faceSlot": { "x": 0.5, "y": 0.4, "w": 0.28, "h": 0.36 },
+    "faceShape": "ellipse",
+    "faceFilter": "grayscale(1) contrast(1.2)",
+    "facePadding": 1.5,
+    "hold": true,
+    "lingerMs": 1200,
+    "minMs": 1800,
+    "durationMs": 3500
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "meet-memes",
+  "version": "0.1.0",
+  "description": "Gesture-triggered meme effects for Google Meet",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "bump": "node scripts/bump.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@mediapipe/tasks-vision": "^1.2.0"
+  },
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/user-is-surya/meet-memes.git"
+  }
+}
