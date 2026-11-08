@@ -4,7 +4,7 @@ export const L = {
   WRIST: 0, THUMB_TIP: 4,
   INDEX_MCP: 5, INDEX_TIP: 8,
   MIDDLE_MCP: 9, MIDDLE_TIP: 12,
-  RING_TIP: 16, PINKY_MCP: 17, PINKY_TIP: 20,
+  RING_MCP: 13, RING_TIP: 16, PINKY_MCP: 17, PINKY_TIP: 20,
 };
 
 export function dist(a, b, aspect) {
@@ -42,4 +42,18 @@ export function isPointing(lm, aspect) {
 export function inBox(p, box, padX = 0, padY = padX) {
   return p.x >= box.x - box.w * padX && p.x <= box.x + box.w * (1 + padX)
     && p.y >= box.y - box.h * padY && p.y <= box.y + box.h * (1 + padY);
+}
+
+// Mean angle (degrees) between neighbouring finger directions (knuckle -> tip):
+// ~0 with fingers held together, 10-25 with fingers spread wide.
+export function fingerSpread(lm, aspect) {
+  const pairs = [[L.INDEX_MCP, L.INDEX_TIP], [L.MIDDLE_MCP, L.MIDDLE_TIP], [L.RING_MCP, L.RING_TIP], [L.PINKY_MCP, L.PINKY_TIP]];
+  const ang = pairs.map(([a, b]) => Math.atan2(lm[b].y - lm[a].y, (lm[b].x - lm[a].x) * aspect));
+  let sum = 0;
+  for (let i = 0; i < 3; i++) {
+    let d = Math.abs(ang[i + 1] - ang[i]);
+    if (d > Math.PI) d = 2 * Math.PI - d;
+    sum += d;
+  }
+  return sum / 3 * 180 / Math.PI;
 }

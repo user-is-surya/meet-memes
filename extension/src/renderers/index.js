@@ -6,6 +6,7 @@ import { AuraEffect } from './aura.js';
 import { ThrowEffect } from './throw.js';
 import { ThanosEffect } from './thanos.js';
 import { ClipPopEffect } from './clip-pop.js';
+import { CinemaEffect } from './cinema.js';
 
 const TYPES = {
   overlay: OverlayEffect,
@@ -15,6 +16,7 @@ const TYPES = {
   throw: ThrowEffect,
   thanos: ThanosEffect,
   'clip-pop': ClipPopEffect,
+  cinema: CinemaEffect,
 };
 
 export function createEffect(def, deps) {

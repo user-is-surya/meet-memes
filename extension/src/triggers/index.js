@@ -3,7 +3,7 @@
 // Pulse triggers (snap, throw) are active for a single update.
 //
 // det = { hands: [...], face: {box, nose, blendshapes} | null, aspect, now }
-import { L, dist, handSize, palm, reach, isFist, isOpen, isPointing, inBox } from '../lib/hands.js';
+import { L, dist, handSize, palm, reach, isFist, isOpen, isPointing, inBox, fingerSpread } from '../lib/hands.js';
 
 const conditions = {
   gesture(spec) {
@@ -23,8 +23,9 @@ const conditions = {
     };
   },
 
-  // Absolute Cinema: both open hands raised beside the head.
-  'both-hands-up'() {
+  // Absolute Cinema: both open hands raised beside the head, fingers spread (the poster pose).
+  'both-hands-up'(spec) {
+    const minSpread = spec.minSpread ?? 8;
     return (det) => {
       if (det.hands.length < 2) return null;
       const box = det.face && det.face.box;
@@ -32,6 +33,7 @@ const conditions = {
         const lm = h.landmarks;
         const wrist = lm[L.WRIST], tip = lm[L.MIDDLE_TIP], p = palm(lm);
         if (tip.y > wrist.y || !isOpen(lm, det.aspect)) return null;
+        if (fingerSpread(lm, det.aspect) < minSpread) return null;
         if (box) {
           if (wrist.y > box.y + box.h * 0.8) return null;
           if (p.x > box.x - box.w * 0.05 && p.x < box.x + box.w * 1.05) return null;

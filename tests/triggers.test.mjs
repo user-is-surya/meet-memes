@@ -20,11 +20,11 @@ test('gesture trigger respects holdMs', () => {
 
 test('both hands up beside the head (Absolute Cinema)', () => {
   const t = createTrigger({ type: 'both-hands-up', holdMs: 0 }, ctx);
-  const up = det([hand({ x: 0.2, y: 0.35 }), hand({ x: 0.8, y: 0.35, handedness: 'Left' })]);
+  const up = det([hand({ x: 0.2, y: 0.35, spread: 1.5 }), hand({ x: 0.8, y: 0.35, handedness: 'Left', spread: 1.5 })]);
   assert.equal(t.update(up, 0).active, true);
-  const oneHand = det([hand({ x: 0.2, y: 0.35 })]);
+  const oneHand = det([hand({ x: 0.2, y: 0.35, spread: 1.5 })]);
   assert.equal(t.update(oneHand, 10).active, false);
-  const handsLow = det([hand({ x: 0.2, y: 0.9 }), hand({ x: 0.8, y: 0.9 })]);
+  const handsLow = det([hand({ x: 0.2, y: 0.9, spread: 1.5 }), hand({ x: 0.8, y: 0.9, spread: 1.5 })]);
   assert.equal(t.update(handsLow, 20).active, false);
 });
 
@@ -166,4 +166,16 @@ test('arbiter: progress reports partial holds, hidden during quiet period', () =
   a.decide([cand('cinema', 2, true)], 100);
   r = a.decide([cand('cinema', 2, true), cand('noice', 4, false, { progress: 0.5 })], 200);
   assert.equal(r.progress.has('noice'), false);
+});
+
+test('Absolute Cinema rejects open hands with fingers held together', () => {
+  const t = createTrigger({ type: 'both-hands-up', holdMs: 0 }, ctx);
+  const together = det([hand({ x: 0.2, y: 0.35 }), hand({ x: 0.8, y: 0.35, handedness: 'Left' })]);
+  assert.equal(t.update(together, 0).active, false);
+});
+
+test('Absolute Cinema rejects fists raised beside the head', () => {
+  const t = createTrigger({ type: 'both-hands-up', holdMs: 0 }, ctx);
+  const fists = det([hand({ x: 0.2, y: 0.35, fingers: fist }), hand({ x: 0.8, y: 0.35, fingers: fist, handedness: 'Left' })]);
+  assert.equal(t.update(fists, 0).active, false);
 });

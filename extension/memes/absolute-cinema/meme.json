@@ -14,23 +14,15 @@
   "sound": "synth:boom",
   "trigger": {
     "type": "both-hands-up",
-    "holdMs": 400
+    "holdMs": 500,
+    "minSpread": 8
   },
   "render": {
-    "type": "face-in-frame",
-    "asset": "poster.png",
-    "faceSlot": {
-      "x": 0.5,
-      "y": 0.4,
-      "w": 0.28,
-      "h": 0.36
-    },
-    "faceShape": "ellipse",
-    "faceFilter": "grayscale(1) contrast(1.2)",
-    "facePadding": 1.5,
+    "type": "cinema",
     "hold": true,
-    "lingerMs": 1200,
-    "minMs": 1800,
+    "minMs": 2000,
+    "lingerMs": 1000,
+    "fadeMs": 300,
     "durationMs": 3500
   }
 }

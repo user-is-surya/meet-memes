@@ -4,7 +4,7 @@ import { TraceRecorder, TRACE_VERSION } from '../extension/src/shared/trace.js';
 import { replay, loadBundledDefs } from './replay.mjs';
 import { hand, FACE } from './helpers/hands.mjs';
 
-const handsUp = () => [hand({ x: 0.2, y: 0.35 }), hand({ x: 0.8, y: 0.35, handedness: 'Left' })];
+const handsUp = () => [hand({ x: 0.2, y: 0.35, spread: 1.5 }), hand({ x: 0.8, y: 0.35, handedness: 'Left', spread: 1.5 })];
 const handsDown = () => [];
 
 function synthetic(reps) {

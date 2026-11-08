@@ -1,7 +1,7 @@
 // Synthetic MediaPipe-style landmarks for tests.
 // Builds 21 hand landmarks. Fingers point along `dir` from the wrist; `s` is the
 // wrist→knuckle length. Each finger is 'ext' (extended) or 'curl' (folded into the palm).
-export function hand({ x, y, s = 0.06, dir = { x: 0, y: -1 }, fingers = {}, thumbTip, gesture = 'None', handedness = 'Right' }) {
+export function hand({ x, y, s = 0.06, dir = { x: 0, y: -1 }, fingers = {}, thumbTip, gesture = 'None', handedness = 'Right', spread = 0 }) {
   const side = { x: -dir.y, y: dir.x };
   const at = (a, b) => ({ x: x + (dir.x * a + side.x * b) * s, y: y + (dir.y * a + side.y * b) * s, z: 0 });
   const lm = new Array(21);
@@ -12,9 +12,11 @@ export function hand({ x, y, s = 0.06, dir = { x: 0, y: -1 }, fingers = {}, thum
   for (const [name, [base, b]] of Object.entries(cols)) {
     const curled = (fingers[name] || 'ext') === 'curl';
     lm[base] = at(1, b);
-    lm[base + 1] = at(curled ? 1.25 : 1.3, b);
-    lm[base + 2] = at(curled ? 1.1 : 1.6, b);
-    lm[base + 3] = at(curled ? 0.9 : 1.9, b);
+    // spread fans extended fingers out from their knuckles (0 = parallel, together).
+    const fan = (a) => (curled ? b : b + b * spread * (a - 1));
+    lm[base + 1] = at(curled ? 1.25 : 1.3, fan(1.3));
+    lm[base + 2] = at(curled ? 1.1 : 1.6, fan(1.6));
+    lm[base + 3] = at(curled ? 0.9 : 1.9, fan(1.9));
   }
   return { landmarks: lm, handedness, gesture: { name: gesture, score: 0.9 } };
 }

@@ -11,7 +11,7 @@ const errors = [];
 const exists = (p) => access(p).then(() => true, () => false);
 
 const TRIGGERS = ['gesture', 'expression', 'both-hands-up', 'hands-over-face', 'hands-on-head', 'snap', 'throw'];
-const RENDERS = ['overlay', 'fullscreen', 'face-in-frame', 'aura', 'throw', 'thanos', 'clip-pop'];
+const RENDERS = ['overlay', 'fullscreen', 'face-in-frame', 'aura', 'throw', 'thanos', 'clip-pop', 'cinema'];
 const GESTURES = ['Thumb_Up', 'Thumb_Down', 'Victory', 'ILoveYou', 'Open_Palm', 'Pointing_Up', 'Closed_Fist'];
 
 async function walk(dir) {
