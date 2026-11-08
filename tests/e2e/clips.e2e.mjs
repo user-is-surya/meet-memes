@@ -21,15 +21,20 @@ test('Noice clip plays (moving picture in the corner) with sound', async () => {
     const base = await h.remoteRms();
     const before = await h.remoteFrame();
     await h.press('Alt+Shift+Digit3');
-    await h.wait(700);
-    const f1 = await h.remoteFrame();
-    let loud = -120;
-    for (let i = 0; i < 12; i++) { loud = Math.max(loud, await h.remoteRms()); await h.wait(50); }
-    const f2 = await h.remoteFrame();
     // The camera is flat dark grey; the Rosen clip (white background, face) is much brighter.
+    // Poll: the clip reaches the receiver within a few hundred ms (network/encoder latency varies).
     const clipBox = { x: 0.78, y: 0.56, w: 0.16, h: 0.12 };
-    assert.ok(meanLuma(f1, clipBox) > meanLuma(before, clipBox) + 45,
-      `clip visible: corner luma ${meanLuma(before, clipBox).toFixed(0)} -> ${meanLuma(f1, clipBox).toFixed(0)}`);
+    let f1 = null, loud = -120;
+    for (let i = 0; i < 14; i++) {
+      await h.wait(150);
+      loud = Math.max(loud, await h.remoteRms());
+      const f = await h.remoteFrame();
+      if (meanLuma(f, clipBox) > meanLuma(before, clipBox) + 45) { f1 = f; break; }
+    }
+    const ds = await h.eval(() => JSON.stringify({ ...document.getElementById('meet-memes-root').dataset }));
+    assert.ok(f1, `clip visible in the corner within 2 s ${ds}`);
+    for (let i = 0; i < 8; i++) { loud = Math.max(loud, await h.remoteRms()); await h.wait(50); }
+    const f2 = await h.remoteFrame();
     const face = { x: 0.78, y: 0.62, w: 0.16, h: 0.3 };
     assert.ok(diff(f1, f2, face) > 2, `clip is moving: ${diff(f1, f2, face).toFixed(1)}`);
     assert.ok(loud > base + 12, `sound: base ${base.toFixed(1)} loud ${loud.toFixed(1)}`);

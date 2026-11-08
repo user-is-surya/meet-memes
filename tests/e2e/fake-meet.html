@@ -22,7 +22,8 @@
     const c = document.createElement('canvas'); c.width = 640; c.height = 360;
     const g = c.getContext('2d');
     let i = 0;
-    setInterval(() => { g.fillStyle = '#333'; g.fillRect(0, 0, 640, 360); g.fillStyle = '#555'; g.fillRect((i++ * 4) % 600, 10, 30, 30); }, 33);
+    // A bright bar on the left edge makes left/right (mirroring) easy to check.
+    setInterval(() => { g.fillStyle = '#333'; g.fillRect(0, 0, 640, 360); g.fillStyle = '#ddd'; g.fillRect(0, 60, 80, 240); g.fillStyle = '#555'; g.fillRect(100 + (i++ * 4) % 440, 10, 30, 30); }, 33);
     cam = c.captureStream(30).getVideoTracks()[0];
     stream.removeTrack(stream.getVideoTracks()[0]); stream.addTrack(cam);
   }

@@ -270,6 +270,7 @@ class App {
   }
 
   onKey(e) {
+    if (e.altKey && e.shiftKey) this.root.dataset.lastKey = e.code + '@' + Math.round(performance.now());
     if (this.modes.handleKey(e)) {
       e.preventDefault();
       e.stopPropagation();

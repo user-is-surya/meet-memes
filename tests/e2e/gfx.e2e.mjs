@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { open, meanLuma, sharpness } from './run.mjs';
 
-// The fake camera has bright fire on the LEFT and a dark T-shirt on the right.
-const left = { x: 0, y: 0.1, w: 0.25, h: 0.8 };
-const right = { x: 0.75, y: 0.1, w: 0.25, h: 0.8 };
+// The grey fake camera has a bright bar on the LEFT edge.
+const left = { x: 0, y: 0.2, w: 0.12, h: 0.6 };
+const right = { x: 0.88, y: 0.2, w: 0.12, h: 0.6 };
 const gfxMode = (h) => h.eval(() => document.getElementById('meet-memes-root')?.dataset.gfx);
 const debug = (h, cmd) => h.eval((c) => document.getElementById('meet-memes-root')
   .dispatchEvent(new CustomEvent('meet-memes-debug', { detail: { cmd: c } })), cmd);
@@ -20,8 +20,9 @@ test('compositor runs on WebGL2', async () => {
 });
 
 test('mirror flips what others see', async () => {
-  const h = await open({ effect: 'none' });
+  const h = await open({ effect: 'none', cam: 'gray' });
   try {
+    await h.waitForEngine(60000);
     await h.wait(2500);
     const before = await h.remoteFrame();
     assert.ok(meanLuma(before, left) > meanLuma(before, right) + 20, 'fixture: left brighter');

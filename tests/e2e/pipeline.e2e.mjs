@@ -15,10 +15,11 @@ test('sender path is active and frames flow', async () => {
 test('effects are drawn after the page blur (crisp at the receiver)', async () => {
   const h = await open();
   try {
+    await h.waitForEngine(60000);
     await h.wait(2500);
     const before = await h.remoteFrame();
     await h.press('Alt+Shift+Digit2');
-    await h.wait(900);
+    await h.wait(1500);
     const after = await h.remoteFrame();
     const sb = sharpness(before), sa = sharpness(after);
     assert.ok(sa > sb * 3, `sharpness before ${sb.toFixed(1)} after ${sa.toFixed(1)}`);
@@ -28,6 +29,7 @@ test('effects are drawn after the page blur (crisp at the receiver)', async () =
 test('camera off: nothing is drawn on the black frames', async () => {
   const h = await open();
   try {
+    await h.waitForEngine(60000);
     await h.wait(2500);
     await h.eval(() => window.harness.camOff());
     await h.wait(500);
@@ -41,6 +43,7 @@ test('camera off: nothing is drawn on the black frames', async () => {
 test('camera stopped and restarted via replaceTrack: effects resume', async () => {
   const h = await open();
   try {
+    await h.waitForEngine(60000);
     await h.wait(2500);
     await h.eval(() => window.harness.stopCamera());
     await h.wait(300);
