@@ -84,15 +84,6 @@ class App {
       const d = e.detail || {};
       if (d.cmd === 'loseGL') this.compositor.loseContext();
       if (d.cmd === 'ring') this.overlay.show(d.id, d.progress, { x: d.x, y: d.y });
-      if (d.cmd === 'dumpPlate') {
-        const t = this.memes.find((m) => m.def.id === 'thanos-snap');
-        const p = t && t.effect.plate;
-        if (p) p.convertToBlob().then((b) => b.arrayBuffer()).then((buf) => {
-          let bin = ''; const u = new Uint8Array(buf);
-          for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
-          this.root.dataset.plate = btoa(bin);
-        });
-      }
     });
     // Keep the self-view's mirror styling right as Meet re-renders it.
     setInterval(() => this.overlay.setMirror(!!this.settings.mirror && isOn(this.settings)), 1000);

@@ -142,3 +142,26 @@ test('getUserMedia fallback processes only while no sender wrapper exists', asyn
   await push(gumProc);
   assert.equal(calls.length, 2);
 });
+
+test('screen share tracks are never wrapped (video or audio)', async () => {
+  const screen = new FakeTrack('video', 'screen:0');
+  const tabAudio = new FakeTrack('audio', 'Tab audio');
+  const { sandbox, MM } = makeSandbox({
+    navigator: { mediaDevices: {
+      getUserMedia: async () => ({ getVideoTracks: () => [], getAudioTracks: () => [] }),
+      getDisplayMedia: async () => ({ getTracks: () => [screen, tabAudio], getVideoTracks: () => [screen], getAudioTracks: () => [tabAudio] }),
+    } },
+  });
+  await sandbox.navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+  const pc = new sandbox.RTCPeerConnection();
+  assert.equal(pc.addTrack(screen)._track, screen);
+  assert.equal(pc.addTrack(tabAudio)._track, tabAudio);
+  assert.equal(MM.wrappers.size, 0);
+});
+
+test('a video track with a displaySurface setting is treated as a screen share', () => {
+  const { sandbox } = makeSandbox();
+  const t = new FakeTrack('video', 'window');
+  t.getSettings = () => ({ displaySurface: 'window' });
+  assert.equal(new sandbox.RTCPeerConnection().addTrack(t)._track, t);
+});

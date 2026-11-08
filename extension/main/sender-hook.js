@@ -7,6 +7,24 @@
 
   const senderSource = new WeakMap(); // sender -> source track Meet thinks it is sending
 
+  // Screen sharing must never go through the meme pipeline (no memes or mirroring on your
+  // shared screen, no meme sounds in shared tab audio).
+  MM.displayTracks = MM.displayTracks || new WeakSet();
+  const md = typeof navigator !== 'undefined' && navigator.mediaDevices;
+  if (md && typeof md.getDisplayMedia === 'function' && !md.__mmDisplayHooked) {
+    const origDisplay = md.getDisplayMedia.bind(md);
+    md.getDisplayMedia = async function getDisplayMedia(...args) {
+      const stream = await origDisplay(...args);
+      try { for (const t of stream.getTracks()) MM.displayTracks.add(t); } catch { /* ignore */ }
+      return stream;
+    };
+    md.__mmDisplayHooked = true;
+  }
+  const isScreenShare = (track) => {
+    if (MM.displayTracks.has(track)) return true;
+    try { const st = track.getSettings && track.getSettings(); return !!(st && st.displaySurface); } catch { return false; }
+  };
+
   MM.dropWrapper = (wrapper) => {
     if (MM.wrappers.get(wrapper.source) === wrapper) MM.wrappers.delete(wrapper.source);
     try { if (MM.selfView) MM.selfView.onDropped(wrapper); } catch { /* ignore */ }
@@ -15,7 +33,7 @@
 
   // Returns the track to actually send for `track`, taking a reference on its wrapper.
   MM.acquire = (track) => {
-    if (!track || MM.outputs.has(track)) return track;
+    if (!track || MM.outputs.has(track) || isScreenShare(track)) return track;
     let wrapper = MM.wrappers.get(track);
     if (!wrapper) {
       if (track.kind === 'video') wrapper = MM.wrapVideo && MM.wrapVideo(track);
