@@ -5,6 +5,7 @@ import { FaceInFrameEffect } from './face-in-frame.js';
 import { AuraEffect } from './aura.js';
 import { ThrowEffect } from './throw.js';
 import { ThanosEffect } from './thanos.js';
+import { ClipPopEffect } from './clip-pop.js';
 
 const TYPES = {
   overlay: OverlayEffect,
@@ -13,6 +14,7 @@ const TYPES = {
   aura: AuraEffect,
   throw: ThrowEffect,
   thanos: ThanosEffect,
+  'clip-pop': ClipPopEffect,
 };
 
 export function createEffect(def, deps) {

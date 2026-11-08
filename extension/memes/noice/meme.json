@@ -10,6 +10,7 @@
   "hotkey": "Alt+Shift+3",
   "cooldownMs": 3000,
   "priority": 4,
+  "sound": "sound.ogg",
   "trigger": {
     "type": "gesture",
     "gesture": "Thumb_Up",
@@ -17,11 +18,13 @@
     "holdMs": 300
   },
   "render": {
-    "type": "overlay",
-    "asset": "noice.gif",
+    "type": "clip-pop",
+    "clip": "clip.webp",
     "position": "bottom-right",
-    "size": 0.5,
-    "durationMs": 2800,
+    "size": 0.42,
+    "caption": "*click*",
+    "punchAt": 900,
+    "punchScale": 1.15,
     "fallbackText": "NOICE 👌"
   }
 }

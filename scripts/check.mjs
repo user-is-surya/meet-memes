@@ -11,7 +11,7 @@ const errors = [];
 const exists = (p) => access(p).then(() => true, () => false);
 
 const TRIGGERS = ['gesture', 'expression', 'both-hands-up', 'hands-over-face', 'hands-on-head', 'snap', 'throw'];
-const RENDERS = ['overlay', 'fullscreen', 'face-in-frame', 'aura', 'throw', 'thanos'];
+const RENDERS = ['overlay', 'fullscreen', 'face-in-frame', 'aura', 'throw', 'thanos', 'clip-pop'];
 const GESTURES = ['Thumb_Up', 'Thumb_Down', 'Victory', 'ILoveYou', 'Open_Palm', 'Pointing_Up', 'Closed_Fist'];
 
 async function walk(dir) {
@@ -65,7 +65,8 @@ for (const id of index.memes) {
     if (hotkeys.has(def.hotkey)) errors.push(`${where}: hotkey ${def.hotkey} already used by ${hotkeys.get(def.hotkey)}`);
     hotkeys.set(def.hotkey, id);
   }
-  for (const key of ['asset', 'projectile']) {
+  if (def.sound && !def.sound.startsWith('synth:') && !await exists(join(ext, 'memes', id, def.sound))) errors.push(`${where}: sound ${def.sound} missing (run npm run clips)`);
+  for (const key of ['asset', 'projectile', 'clip']) {
     const f = def.render && def.render[key];
     if (f && !await exists(join(ext, 'memes', id, f))) console.warn(`  note: ${where}/${f} not added yet (a built-in fallback is used)`);
   }

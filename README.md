@@ -107,3 +107,17 @@ Installed copies see the update within a few hours.
 ## License
 
 The code is MIT. Meme images belong to their respective owners and are included for personal, non-commercial fun.
+
+## Credits
+
+Meme clips and sounds bundled with the extension are short excerpts of the original
+memes, used for parody and commentary. All rights belong to their owners:
+
+- Fanum broccoli: Fanum / Kai Cenat stream, exploding edit (youtube.com/shorts/mq-evz4bpZ4)
+- Noice: Michael Rosen (youtube.com/shorts/RmTNdjd2nQQ)
+- Emotional Damage: Steven He (youtube.com/shorts/InaAKIjzXuE)
+- "No, God, please no": The Office, NBC (youtube.com/watch?v=umDr0mPuyQc)
+- Thanos snap sound: Avengers: Infinity War, Marvel Studios (youtube.com/watch?v=AaZs5xsvu7A)
+- Laser sound effect (youtube.com/watch?v=Utyfma7bBlc)
+
+Rebuild them with `npm run clips` (see `extension/memes/clips.json`).

@@ -1,0 +1,9 @@
+{
+  "_doc": "Source clips for bundled memes. Rebuild with `npm run clips` (needs: python -m pip install --user yt-dlp imageio-ffmpeg). from/to are seconds in the source; crop is an ffmpeg crop (w:h:x:y) applied before scaling.",
+  "fanum-broccoli": { "url": "https://www.youtube.com/shorts/mq-evz4bpZ4", "from": 0.0, "to": 5.5, "crop": "360:203:0:219", "height": 270, "fps": 24, "video": true, "audio": true },
+  "noice": { "url": "https://www.youtube.com/shorts/RmTNdjd2nQQ", "from": 0.55, "to": 2.1, "crop": "360:420:0:40", "height": 300, "fps": 24, "video": true, "audio": true },
+  "emotional-damage": { "url": "https://www.youtube.com/shorts/InaAKIjzXuE", "from": 0.5, "to": 4.4, "height": 300, "fps": 24, "video": true, "audio": true },
+  "michael-scott": { "url": "https://www.youtube.com/watch?v=umDr0mPuyQc", "from": 3.2, "to": 8.0, "height": 288, "fps": 24, "video": true, "audio": true },
+  "thanos-snap": { "url": "https://www.youtube.com/watch?v=AaZs5xsvu7A", "from": 0.8, "to": 2.0, "audio": true },
+  "laser-eyes": { "url": "https://www.youtube.com/watch?v=Utyfma7bBlc", "from": 0.3, "to": 3.0, "audio": true }
+}
