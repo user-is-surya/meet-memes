@@ -28,7 +28,7 @@
       const mode = root.dataset.mode;
       if (!mode || mode === 'off' || source.enabled === false) return frame;
 
-      if (!src || !src.isConnected) {
+      if (!src || !src.isConnected || !fx || !fx.isConnected) {
         src = byId('meet-memes-src');
         fx = byId('meet-memes-fx');
         sctx = src && src.getContext('2d', { alpha: false });

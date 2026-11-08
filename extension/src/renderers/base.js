@@ -61,5 +61,12 @@ export class Effect {
   }
 
   onDetect() {}
+
+  // New effects override renderGL(g, env) and draw with the graphics API (src/gfx/graphics.js).
+  // Older Canvas2D effects implement render(ctx, env); they run on a transparent overlay.
+  renderGL(g, env) {
+    g.draw2D((ctx) => this.render(ctx, env));
+  }
+
   render() {}
 }

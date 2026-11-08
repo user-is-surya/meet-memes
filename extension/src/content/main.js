@@ -5,6 +5,7 @@ import {
 } from '../shared/settings.js';
 import { ModeController } from './modes.js';
 import { Pill } from './pill.js';
+import { Compositor } from '../gfx/compositor.js';
 import { EngineClient } from './engine-client.js';
 import { AssetStore } from './assets.js';
 import { SnapListener } from './audio.js';
@@ -24,7 +25,7 @@ function ensureRoot() {
   }
   // Kept in the viewport (but invisible) so Chrome doesn't throttle the engine iframe.
   root.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;overflow:hidden;opacity:0;pointer-events:none;z-index:-1;';
-  for (const id of ['meet-memes-src', 'meet-memes-fx']) {
+  for (const id of ['meet-memes-src']) {
     if (document.getElementById(id)) continue;
     const c = document.createElement('canvas');
     c.id = id;
@@ -40,8 +41,8 @@ class App {
   constructor() {
     this.root = ensureRoot();
     this.src = document.getElementById('meet-memes-src');
-    this.fx = document.getElementById('meet-memes-fx');
-    this.fctx = this.fx.getContext('2d', { alpha: false });
+    this.compositor = new Compositor(this.root);
+    this.frame = this.src; // the (possibly mirrored) frame effects and detection use
     this.memes = [];
     this.enabledMemes = [];
     this.det = { hands: [], face: null, mask: null, aspect: 16 / 9, t: 0 };
@@ -72,6 +73,9 @@ class App {
     });
 
     this.src.addEventListener('meet-memes-frame', () => this.onFrame());
+    this.root.addEventListener('meet-memes-debug', (e) => {
+      if (e.detail && e.detail.cmd === 'loseGL') this.compositor.loseContext();
+    });
     window.addEventListener('keydown', (e) => this.onKey(e), true);
     chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
       if (msg && msg.type === 'status') reply(this.status());
@@ -132,41 +136,41 @@ class App {
 
   onFrame() {
     const now = performance.now();
-    const { src, fx, fctx } = this;
-    const w = src.width, h = src.height;
+    const { src } = this;
     this.lastFrameAt = now;
-    if (fx.width !== w || fx.height !== h) { fx.width = w; fx.height = h; }
 
     if (!this.greeted && this.engine.status === 'ready') {
       this.greeted = true;
       toast('Meet Memes is ready ✨  (Alt+Shift+0 turns it off)');
     }
     if (this.wantMic && !this.audio.running) this.audio.start();
+
+    const mirror = !!this.settings.mirror && isOn(this.settings);
+    const frame = this.frame = this.compositor.frameFor(src, mirror);
     this.maybeDetect(now);
 
-    const env = { w, h, now, src, det: this.det };
     const active = this.enabledMemes
       .filter((m) => m.effect.isActive(now))
       .sort((a, b) => a.effect.layer - b.effect.layer);
 
-    if (active.length) {
-      fctx.globalCompositeOperation = 'source-over';
-      fctx.globalAlpha = 1;
-      fctx.filter = 'none';
-      fctx.drawImage(src, 0, 0, w, h);
+    if (active.length || mirror) {
+      const g = this.compositor.begin(frame, { now, mask: this.det.mask });
+      const env = { w: frame.width, h: frame.height, now, src: frame, det: this.det, g, quality: this.compositor.quality, mirror };
+      g.drawFrame();
       for (const m of active) {
         try {
-          m.effect.render(fctx, env);
+          m.effect.renderGL(g, env);
         } catch (err) {
           console.warn('[meet-memes] render failed', m.def.id, err);
           m.effect.stop();
         }
       }
+      this.compositor.end();
       this.root.dataset.used = '1';
     }
 
     if (this.preview.el) {
-      this.preview.draw(active.length ? fx : src, this.det, this.settings.debug, this.settings.debug ? this.debugLines(active) : []);
+      this.preview.draw(active.length || mirror ? this.compositor.fx : src, this.det, this.settings.debug, this.settings.debug ? this.debugLines(active) : []);
     }
   }
 
@@ -175,8 +179,9 @@ class App {
     if (now - this.lastDetectAt < 1000 / this.settings.detectFps) return;
     this.detecting = true;
     this.lastDetectAt = now;
-    const w = DETECT_WIDTH, h = Math.round(DETECT_WIDTH * this.src.height / this.src.width);
-    createImageBitmap(this.src, { resizeWidth: w, resizeHeight: h, resizeQuality: 'low' })
+    const frame = this.frame;
+    const w = DETECT_WIDTH, h = Math.round(DETECT_WIDTH * frame.height / frame.width);
+    createImageBitmap(frame, { resizeWidth: w, resizeHeight: h, resizeQuality: 'low' })
       .then((bmp) => this.engine.detect(bmp, this.needsMask))
       .then((res) => this.onDetections(res))
       .catch((err) => console.warn('[meet-memes] detect failed', err))
@@ -196,7 +201,7 @@ class App {
     };
 
     for (const m of this.enabledMemes) {
-      m.effect.onDetect(this.det, this.src);
+      m.effect.onDetect(this.det, this.frame);
       if (!m.trigger || !this.gesturesOn) continue;
       const { active, info } = m.trigger.update(this.det, now);
       if (active && !m.wasActive && now >= m.cooldownUntil) {
