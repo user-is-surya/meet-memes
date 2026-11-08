@@ -1,5 +1,6 @@
-// Builds tests/e2e/person.y4m: the fake camera feed for end-to-end tests (a person
-// sitting at a desk, 640x360 @15fps, ~5 s loop). Needs Python with yt-dlp and
+// Builds the fake camera feeds for end-to-end tests (640x360 @15fps):
+//   tests/e2e/person.y4m  a meme clip of a person at a desk (~5 s loop, busy background)
+//   tests/e2e/webcam.y4m  a static webcam view of a person in a room (~10 s loop) Needs Python with yt-dlp and
 // imageio-ffmpeg:  python -m pip install --user yt-dlp imageio-ffmpeg
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
@@ -27,3 +28,14 @@ if (!existsSync(src)) {
 execFileSync(ff, ['-v', 'error', '-y', '-ss', '0', '-t', '5', '-i', src,
   '-vf', 'crop=360:203:0:219,scale=640:360,fps=15,format=yuv420p', '-an', out], { stdio: 'inherit' });
 console.log('wrote', out);
+
+const camSrc = join(cache, 'webcam-src.mp4');
+if (!existsSync(camSrc)) {
+  execFileSync('python', ['-m', 'yt_dlp', '-q', '--no-warnings', '--ffmpeg-location', ff,
+    '-f', 'bv*[height<=720]+ba/b', '--merge-output-format', 'mp4', '-o', camSrc,
+    'https://www.youtube.com/watch?v=bybfG35jVQY'], { stdio: 'inherit' });
+}
+const camOut = join(root, 'tests', 'e2e', 'webcam.y4m');
+execFileSync(ff, ['-v', 'error', '-y', '-ss', '1', '-t', '10', '-i', camSrc,
+  '-vf', 'scale=640:360,fps=15,format=yuv420p', '-an', camOut], { stdio: 'inherit' });
+console.log('wrote', camOut);

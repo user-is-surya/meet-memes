@@ -10,9 +10,10 @@ import { tmpdir } from 'node:os';
 const here = dirname(fileURLToPath(import.meta.url));
 export const EXT = join(here, '..', '..', 'extension');
 const Y4M = join(here, 'person.y4m');
+const WEBCAM = join(here, 'webcam.y4m');
 const HTML = readFileSync(join(here, 'fake-meet.html'), 'utf8');
 
-export async function open({ effect = 'blur', settings = null, harness = true, audio = '', cam = '' } = {}) {
+export async function open({ effect = 'blur', settings = null, harness = true, audio = '', cam = '', video = 'person' } = {}) {
   if (!existsSync(Y4M)) throw new Error('tests/e2e/person.y4m missing: run `npm run e2e:setup`');
   const profile = join(tmpdir(), 'meet-memes-e2e-' + process.pid + '-' + Math.random().toString(36).slice(2));
   const ctx = await chromium.launchPersistentContext(profile, {
@@ -23,7 +24,7 @@ export async function open({ effect = 'blur', settings = null, harness = true, a
       `--load-extension=${EXT}`,
       '--use-fake-ui-for-media-stream',
       '--use-fake-device-for-media-stream',
-      `--use-file-for-fake-video-capture=${Y4M}`,
+      `--use-file-for-fake-video-capture=${video === 'webcam' ? WEBCAM : Y4M}`,
       '--autoplay-policy=no-user-gesture-required',
     ],
   });
@@ -47,8 +48,11 @@ export async function open({ effect = 'blur', settings = null, harness = true, a
     ctx, page, sw, extId,
     stats: () => page.evaluate(() => window.harness.stats()),
     eval: (fn, arg) => page.evaluate(fn, arg),
-    press: async (keys) => { await page.locator('body').click({ position: { x: 700, y: 300 } }).catch(() => {}); await page.keyboard.press(keys); },
-    remoteFrame: () => page.evaluate(() => window.harness.remoteFrame()),
+    press: async (keys) => { await page.mouse.click(2, 2); await page.keyboard.press(keys); },
+    async remoteFrame() {
+      const f = await page.evaluate(() => window.harness.remoteFrameB64());
+      return f && { w: f.w, h: f.h, data: Buffer.from(f.b64, 'base64') };
+    },
     remoteRms: () => page.evaluate(() => window.harness.remoteRms()),
     wait: (ms) => page.waitForTimeout(ms),
     async waitForEngine(ms = 30000) {
@@ -56,6 +60,10 @@ export async function open({ effect = 'blur', settings = null, harness = true, a
         const r = document.getElementById('meet-memes-root');
         return r && r.dataset.engine === 'ready';
       }, null, { timeout: ms }).catch(() => {});
+    },
+    // Waits until person masks are flowing (needed by Thanos / aura / explosions).
+    async waitForMasks(n = 8, ms = 60000) {
+      await page.waitForFunction((k) => Number(document.getElementById('meet-memes-root')?.dataset.masks) >= k, n, { timeout: ms }).catch(() => {});
     },
     async close() { await ctx.close(); try { rmSync(profile, { recursive: true, force: true }); } catch { /* ignore */ } },
   };

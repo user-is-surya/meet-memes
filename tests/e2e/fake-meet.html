@@ -92,6 +92,17 @@
       g.drawImage(remote, 0, 0);
       return { w, h: hh, data: Array.from(g.getImageData(0, 0, w, hh).data) };
     },
+    remoteFrameB64() {
+      const w = remote.videoWidth, hh = remote.videoHeight;
+      if (!w) return null;
+      grab.width = w; grab.height = hh;
+      const g = grab.getContext('2d', { willReadFrequently: true });
+      g.drawImage(remote, 0, 0);
+      const d = g.getImageData(0, 0, w, hh).data;
+      let bin = '';
+      for (let i = 0; i < d.length; i += 0x8000) bin += String.fromCharCode.apply(null, d.subarray(i, i + 0x8000));
+      return { w, h: hh, b64: btoa(bin) };
+    },
     remoteRms() {
       const a = ensureAnalyser();
       if (!a) return -120;

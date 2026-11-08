@@ -2,6 +2,7 @@
 // Runs MediaPipe here because Meet's page CSP / Trusted Types block it in content scripts,
 // and serves bundled meme files as raw bytes so the page canvas never gets tainted.
 import { createDetector } from './detector.js';
+import { buildPlate } from '../src/fx/inpaint.js';
 
 const PARENT_ORIGIN = 'https://meet.google.com';
 
@@ -58,6 +59,11 @@ window.addEventListener('message', (e) => {
   const msg = e.data || {};
   if (msg.type === 'detect') detect(msg);
   else if (msg.type === 'fetch') fetchFile(msg);
+  else if (msg.type === 'inpaint') {
+    let out = null;
+    try { out = buildPlate(new Uint8ClampedArray(msg.rgba), new Uint8Array(msg.known), msg.w, msg.h); } catch (err) { console.warn('[meet-memes engine] plate failed', err); }
+    post({ type: 'inpainted', id: msg.id, rgba: out ? out.buffer : null }, out ? [out.buffer] : []);
+  }
 });
 
 post({ type: 'hello' });

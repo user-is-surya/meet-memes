@@ -13,6 +13,7 @@
 import { FS_HEADER, NOISE_GLSL } from './gl.js';
 
 const passes = new Map();
+export const passNames = () => [...passes.keys()];
 
 // fs: GLSL body (FS_HEADER + NOISE_GLSL are prepended). Built-in uniforms: uRes, uTime,
 // uFrame (sampler, the base video frame), uMask (sampler, person mask; 0 if none), uHasMask.
@@ -69,7 +70,7 @@ uniform float uSizeScale;
 out vec2 vLocal;
 out vec4 vColor;
 void main() {
-  float s = aInst.z * uSizeScale * uRes.y / 720.0;
+  float s = max(1.6, aInst.z * uSizeScale * uRes.y / 720.0);
   vec2 local = (aPos - 0.5) * s;
   float c = cos(aInst.w), sn = sin(aInst.w);
   local = vec2(c * local.x - sn * local.y, sn * local.x + c * local.y);

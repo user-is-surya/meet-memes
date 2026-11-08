@@ -83,6 +83,15 @@ class App {
       const d = e.detail || {};
       if (d.cmd === 'loseGL') this.compositor.loseContext();
       if (d.cmd === 'ring') this.overlay.show(d.id, d.progress, { x: d.x, y: d.y });
+      if (d.cmd === 'dumpPlate') {
+        const t = this.memes.find((m) => m.def.id === 'thanos-snap');
+        const p = t && t.effect.plate;
+        if (p) p.convertToBlob().then((b) => b.arrayBuffer()).then((buf) => {
+          let bin = ''; const u = new Uint8Array(buf);
+          for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+          this.root.dataset.plate = btoa(bin);
+        });
+      }
     });
     // Keep the self-view's mirror styling right as Meet re-renders it.
     setInterval(() => this.overlay.setMirror(!!this.settings.mirror && isOn(this.settings)), 1000);
@@ -106,13 +115,14 @@ class App {
 
     await this.loadMemes();
     this.applySettings();
+    setTimeout(() => this.compositor.warmup(), 1500);
   }
 
   async loadMemes() {
     if (!this.bundled) this.bundled = await loadBundledMemes((p) => this.engine.fetchText(p));
     const defs = [...applyOverrides(this.bundled, this.settings), ...await getCustomMemes()];
     for (const m of this.memes) m.effect.stop();
-    const deps = { assets: this.assets, sfx: this.sfx };
+    const deps = { assets: this.assets, sfx: this.sfx, toast };
     this.memes = defs.map((def) => {
       const effect = createEffect(def, deps);
       if (!effect) return null;
@@ -192,6 +202,9 @@ class App {
       this.root.dataset.used = '1';
     }
 
+    const ft = performance.now() - now;
+    this.ftMax = Math.max(this.ftMax || 0, ft);
+    if (now - (this.ftAt || 0) > 1000) { this.root.dataset.frameMs = this.ftMax.toFixed(1); this.ftMax = 0; this.ftAt = now; }
     if (this.preview.el) {
       this.preview.draw(active.length || mirror ? this.compositor.fx : src, this.det, this.settings.debug, this.settings.debug ? this.debugLines(active) : []);
     }
@@ -215,6 +228,10 @@ class App {
 
   onDetections(res) {
     const now = performance.now();
+    this.detGapMax = Math.max(this.detGapMax || 0, now - (this.lastDetAt || now));
+    this.lastDetAt = now;
+    if (now - (this.detGapAt || 0) > 1000) { this.root.dataset.detGap = Math.round(this.detGapMax); this.detGapMax = 0; this.detGapAt = now; }
+    if (res.mask) this.root.dataset.masks = String((Number(this.root.dataset.masks) || 0) + 1);
     if (res.face) { this.lastFace = res.face; this.lastFaceAt = now; }
     if (this.det.mask && this.det.mask !== res.mask) this.det.mask.close();
     this.det = {
@@ -239,6 +256,7 @@ class App {
       if (c.id === fire) {
         m.effect.fire(c.info, now);
         this.lastFired = { id: m.def.name, at: now };
+        this.root.dataset.lastFired = m.def.id + '@' + Math.round(now);
         m.cooldownUntil = now + (m.def.cooldownMs ?? 2500);
       }
       m.effect.setHeld(c.active, now);

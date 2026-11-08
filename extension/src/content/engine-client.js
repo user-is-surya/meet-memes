@@ -59,6 +59,12 @@ export class EngineClient {
     return r.ok ? { bytes: r.bytes, mime: r.mime } : null;
   }
 
+  // Builds the Thanos empty-room plate off the page's main thread. Resolves to Uint8ClampedArray | null.
+  async buildPlate(rgba, known, w, h) {
+    const r = await this.request({ type: 'inpaint', rgba: rgba.buffer, known: known.buffer, w, h }, [rgba.buffer, known.buffer]);
+    return r.rgba ? new Uint8ClampedArray(r.rgba) : null;
+  }
+
   detect(bitmap, wantMask) {
     return this.request({ type: 'detect', bitmap, wantMask }, [bitmap]);
   }

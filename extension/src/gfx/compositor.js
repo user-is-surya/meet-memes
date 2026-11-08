@@ -3,7 +3,8 @@
 // backend (WebGL2, or Canvas2D if WebGL2 is missing or its context is lost), and the
 // frame-time budget.
 import { createGL } from './gl.js';
-import { GLGraphics, Canvas2DGraphics } from './graphics.js';
+import { GLGraphics, Canvas2DGraphics, passNames } from './graphics.js';
+import { ParticleSystem } from './particles.js';
 import { FrameBudget } from './budget.js';
 
 export class Compositor {
@@ -53,6 +54,30 @@ export class Compositor {
   loseContext() {
     const ext = this.glCtx && this.glCtx.gl.getExtension('WEBGL_lose_context');
     if (ext) ext.loseContext(); else this.lost = true;
+  }
+
+  // Compile every shader once on a tiny frame, so the first time an effect runs it
+  // doesn't stall the video while the GPU driver compiles.
+  warmup() {
+    if (this.mode !== 'gl') return;
+    const g = this.g;
+    const tiny = new OffscreenCanvas(4, 4);
+    tiny.getContext('2d').fillRect(0, 0, 4, 4);
+    const ps = new ParticleSystem(4);
+    ps.spawn(1, (i, p) => { p.x = 0.5; p.y = 0.5; });
+    const prev = { w: g.w, h: g.h, frame: g.frame, now: g.now, mask: g.mask };
+    try {
+      this.glCanvas.width = this.glCanvas.width || 4;
+      g.begin(tiny, { w: 4, h: 4, now: 0, mask: tiny });
+      g.drawFrame();
+      g.drawImage(tiny, 0, 0, 1, 1);
+      g.drawPerson();
+      for (const shape of ['soft', 'flake', 'spark']) g.particles(ps, { shape });
+      for (const name of passNames()) { try { g.pass(name, { uniforms: {}, textures: {} }); } catch { /* ignore */ } }
+    } catch (err) {
+      console.warn('[meet-memes] shader warm-up failed', err);
+    }
+    Object.assign(g, prev);
   }
 
   get quality() { return this.budget.quality; }

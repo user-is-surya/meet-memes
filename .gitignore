@@ -5,6 +5,7 @@ extension/vendor/
 Thumbs.db
 .superpowers/
 tests/e2e/person.y4m
+tests/e2e/webcam.y4m
 tests/e2e/.profile/
 tests/e2e/.cache/
 .clips-cache/
