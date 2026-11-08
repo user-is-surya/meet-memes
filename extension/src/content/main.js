@@ -56,6 +56,7 @@ class App {
     this.settings = await getSettings();
     this.engine = new EngineClient(this.root);
     this.engine.onStatus = (state, err) => {
+      this.root.dataset.engine = state;
       if (state === 'error') toast(`Meet Memes: gesture detection failed to load (${err})`, 6000);
     };
     this.assets = new AssetStore(this.engine);
@@ -217,6 +218,7 @@ class App {
       enabled: this.settings.enabled,
       mode: this.settings.mode,
       cameraLive: now - (this.lastFrameAt || -Infinity) < 2000,
+      path: this.root.dataset.path || 'none',
       frameSize: `${this.src.width}x${this.src.height}`,
       engine: this.engine.status,
       engineError: this.engine.error,

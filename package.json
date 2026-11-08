@@ -7,12 +7,15 @@
     "icons": "node scripts/make-icons.mjs",
     "bump": "node scripts/bump.mjs",
     "check": "node scripts/check.mjs",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "e2e:setup": "node scripts/make-y4m.mjs",
+    "e2e": "node --test --test-concurrency=1 tests/e2e/*.e2e.mjs"
   },
   "license": "MIT",
   "type": "module",
   "devDependencies": {
-    "@mediapipe/tasks-vision": "^1.2.0"
+    "@mediapipe/tasks-vision": "^1.2.0",
+    "playwright": "^1.49.1"
   },
   "private": true,
   "repository": {

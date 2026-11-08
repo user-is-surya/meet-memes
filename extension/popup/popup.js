@@ -70,6 +70,9 @@ async function renderStatus() {
       s.engine === 'ready' ? 'Gesture detection ready' : s.engine === 'error' ? 'Gesture detection failed' : 'Gesture detection loading…',
       s.engine === 'error' ? s.engineError : ''),
   ];
+  if (s.cameraLive) rows.push(...line(s.path === 'sender' ? 'ok' : 'wait',
+    s.path === 'sender' ? 'Effects path: after Meet effects ✓' : 'Effects path: before Meet effects (fallback) ⚠',
+    s.path === 'sender' ? '' : 'Meet blur / backgrounds may soften the memes. Tell the developer if you see this during a call.'));
   if (s.engine === 'ready' && s.cameraLive) {
     rows.push(...line(s.face ? 'ok' : 'wait', s.face ? 'Face visible' : 'No face detected'));
     rows.push(...line(s.hands.length ? 'ok' : 'wait', s.hands.length ? `Hands: ${s.hands.join(', ')}` : 'No hands in view'));

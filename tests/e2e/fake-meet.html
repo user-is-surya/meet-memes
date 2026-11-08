@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Fake Meet</title>
+<style>body{margin:0;background:#202124;color:#fff;font:12px sans-serif} video{width:320px;height:180px;background:#000;margin:4px}</style>
+</head>
+<body>
+<!-- Simulates what Meet does with the camera: optional background effect (here a whole-frame
+     blur drawn to a canvas), then send the processed track over WebRTC. pc1 -> pc2 loopback;
+     #remote shows what other participants would receive. -->
+<video id="self" autoplay muted playsinline></video>
+<video id="remote" autoplay muted playsinline></video>
+<script>
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const effect = params.get('effect') || 'blur';
+  const h = window.harness = { ready: false, log: [] };
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 360 }, audio: true });
+  const cam = stream.getVideoTracks()[0];
+  const mic = stream.getAudioTracks()[0];
+
+  let sendTrack = cam;
+  if (effect === 'blur') {
+    const v = document.createElement('video');
+    v.muted = true; v.srcObject = new MediaStream([cam]); await v.play();
+    const c = document.createElement('canvas'); c.width = 640; c.height = 360;
+    const g = c.getContext('2d');
+    const draw = () => {
+      if (v.videoWidth && (c.width !== v.videoWidth || c.height !== v.videoHeight)) { c.width = v.videoWidth; c.height = v.videoHeight; }
+      g.filter = 'blur(8px)'; g.drawImage(v, 0, 0, c.width, c.height); g.filter = 'none';
+    };
+    setInterval(draw, 33);
+    sendTrack = c.captureStream(30).getVideoTracks()[0];
+  }
+  document.getElementById('self').srcObject = new MediaStream([sendTrack]);
+
+  const pc1 = new RTCPeerConnection(), pc2 = new RTCPeerConnection();
+  pc1.onicecandidate = (e) => e.candidate && pc2.addIceCandidate(e.candidate);
+  pc2.onicecandidate = (e) => e.candidate && pc1.addIceCandidate(e.candidate);
+  const remoteStream = new MediaStream();
+  pc2.ontrack = (e) => { remoteStream.addTrack(e.track); document.getElementById('remote').srcObject = remoteStream; };
+  const vSender = pc1.addTrack(sendTrack, stream);
+  const aSender = pc1.addTrack(mic, stream);
+  await pc1.setLocalDescription(await pc1.createOffer());
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription(await pc2.createAnswer());
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  // Remote audio level (what others hear).
+  let analyser = null;
+  const ensureAnalyser = () => {
+    if (analyser || !remoteStream.getAudioTracks().length) return analyser;
+    const ac = new AudioContext();
+    analyser = ac.createAnalyser(); analyser.fftSize = 2048;
+    ac.createMediaStreamSource(remoteStream).connect(analyser);
+    return analyser;
+  };
+
+  const remote = document.getElementById('remote');
+  const grab = document.createElement('canvas');
+  Object.assign(h, {
+    cam, mic, sendTrack, vSender, aSender, pc1, pc2,
+    camOff() { sendTrack.enabled = false; },
+    camOn() { sendTrack.enabled = true; },
+    mute() { mic.enabled = false; },
+    unmute() { mic.enabled = true; },
+    async stopCamera() { await vSender.replaceTrack(null); },
+    async restartCamera() { await vSender.replaceTrack(sendTrack); },
+    setRes(w, hh) { return cam.applyConstraints({ width: w, height: hh }); },
+    remoteFrame() {
+      const w = remote.videoWidth, hh = remote.videoHeight;
+      if (!w) return null;
+      grab.width = w; grab.height = hh;
+      const g = grab.getContext('2d', { willReadFrequently: true });
+      g.drawImage(remote, 0, 0);
+      return { w, h: hh, data: Array.from(g.getImageData(0, 0, w, hh).data) };
+    },
+    remoteRms() {
+      const a = ensureAnalyser();
+      if (!a) return -120;
+      const buf = new Float32Array(a.fftSize); a.getFloatTimeDomainData(buf);
+      let s = 0; for (const x of buf) s += x * x;
+      return 20 * Math.log10(Math.sqrt(s / buf.length) + 1e-9);
+    },
+    stats() { return window.__meetMemes ? JSON.parse(JSON.stringify(window.__meetMemes.stats)) : null; },
+  });
+  h.ready = true;
+})().catch((e) => { window.harness = { error: String(e && e.stack || e) }; });
+</script>
+</body>
+</html>

@@ -24,6 +24,7 @@
       if (!root || !root.isConnected) root = byId(ROOT_ID);
       if (!root) return frame;
       root.dataset.sourceEnabled = String(source.enabled !== false);
+      if (root.dataset.path !== MM.stats.path) root.dataset.path = MM.stats.path;
       const mode = root.dataset.mode;
       if (!mode || mode === 'off' || source.enabled === false) return frame;
 
