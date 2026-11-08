@@ -37,7 +37,8 @@ function ensureRoot() {
   return root;
 }
 
-const usesSnap = (trigger) => [].concat(trigger || []).some((t) => t && t.type === 'snap');
+const MIC_TRIGGERS = new Set(['snap', 'thumb-by-face']);
+const usesSnap = (trigger) => [].concat(trigger || []).some((t) => t && MIC_TRIGGERS.has(t.type));
 
 class App {
   constructor() {

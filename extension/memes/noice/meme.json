@@ -1,6 +1,6 @@
 {
   "name": "Noice",
-  "description": "Thumbs up and the Noice GIF pops up.",
+  "description": "Thumbs up beside your face + a tongue click: the Noice clip pops up and your video punch-zooms.",
   "origin": "Michael Rosen’s “*click* … noice” clip.",
   "whatHappens": "The Noice clip pops up in the corner with its sound, and your video punch-zooms on your face right as he says “noice”.",
   "how": "Hold a thumbs up next to your face and click your tongue. Without a mic, hold the thumbs up next to your face for about a second.",
@@ -12,10 +12,9 @@
   "priority": 4,
   "sound": "sound.ogg",
   "trigger": {
-    "type": "gesture",
-    "gesture": "Thumb_Up",
-    "minScore": 0.65,
-    "holdMs": 300
+    "type": "thumb-by-face",
+    "minScore": 0.6,
+    "holdNoMicMs": 1200
   },
   "render": {
     "type": "clip-pop",
@@ -25,6 +24,7 @@
     "caption": "*click*",
     "punchAt": 900,
     "punchScale": 1.15,
-    "fallbackText": "NOICE 👌"
+    "fallbackText": "NOICE 👌",
+    "caption2": "noice"
   }
 }

@@ -106,6 +106,31 @@ const conditions = {
     };
   },
 
+  // Noice: a thumbs up held beside the face (not in front of the chest) plus a tongue click.
+  // Without a mic: hold it there for holdNoMicMs.
+  'thumb-by-face'(spec, ctx) {
+    const minScore = spec.minScore ?? 0.6, holdNoMic = spec.holdNoMicMs ?? 1200, minHold = spec.minHoldMs ?? 200;
+    let since = null;
+    const beside = (p, b) => {
+      const left = p.x >= b.x - b.w * 0.6 && p.x <= b.x + b.w * 0.15;
+      const right = p.x >= b.x + b.w * 0.85 && p.x <= b.x + b.w * 1.6;
+      return (left || right) && p.y >= b.y - b.h * 0.2 && p.y <= b.y + b.h * 1.2;
+    };
+    return (det, now) => {
+      const face = det.face;
+      const h = face && det.hands.find((x) => x.gesture.name === 'Thumb_Up' && x.gesture.score >= minScore && beside(palm(x.landmarks), face.box));
+      if (!h) { since = null; return null; }
+      if (since === null) since = now;
+      const p = palm(h.landmarks);
+      const audio = ctx.audio && ctx.audio();
+      if (audio && audio.running && audio.lastClickAt !== undefined) {
+        const click = audio.lastClickAt;
+        return now - since >= minHold && click >= since + minHold && now - click < 400 ? { hand: p } : null;
+      }
+      return now - since >= holdNoMic ? { hand: p } : null;
+    };
+  },
+
   // Throw: a fast hand sweep, by default starting from a fist (holding the broccoli).
   throw(spec) {
     const windowMs = spec.windowMs ?? 350, minDistance = spec.minDistance ?? 0.35;

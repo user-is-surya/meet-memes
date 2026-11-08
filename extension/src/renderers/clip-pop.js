@@ -1,6 +1,6 @@
 // A meme clip that pops up in a corner (with its sound), optionally with a caption and
 // a punch-zoom on your face at a given moment of the clip.
-// meme.json render: { type: 'clip-pop', clip, position, size, caption, punchAt, punchScale }
+// meme.json render: { type: 'clip-pop', clip, position, size, caption, caption2, punchAt, punchScale }
 import { Effect } from './base.js';
 import { ClipPlayer } from '../content/clip-player.js';
 import { clamp01, easeOutBack } from '../lib/draw.js';
@@ -65,8 +65,10 @@ export class ClipPopEffect extends Effect {
     g.drawImage(shadow(), cx - w * 0.62, cy - h * 0.62, w * 1.24, h * 1.24, { alpha: sOut, key: 'clip-shadow', static: true });
     if (frame) g.drawImage(frame, cx - w / 2, cy - h / 2, w, h, { key: 'clip:' + this.def.id });
     else g.drawText(this.r.fallbackText || this.def.name, cx, cy, { size: 0.09 * s, fill: '#fff', stroke: '#000' });
-    if (this.r.caption) {
-      g.drawText(this.r.caption, cx, cy + h / 2 - 0.045 * s, {
+    // caption, then caption2 from the punch moment on (e.g. "*click*" then "noice").
+    const cap = this.r.caption2 && this.r.punchAt != null && t >= this.r.punchAt ? this.r.caption2 : this.r.caption;
+    if (cap) {
+      g.drawText(cap, cx, cy + h / 2 - 0.045 * s, {
         size: 0.06 * s, font: "'Segoe UI', Arial, sans-serif", weight: 700, italic: true, fill: '#fff', stroke: '#111', strokeWidth: 0.14,
       });
     }

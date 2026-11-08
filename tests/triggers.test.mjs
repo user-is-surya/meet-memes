@@ -179,3 +179,51 @@ test('Absolute Cinema rejects fists raised beside the head', () => {
   const fists = det([hand({ x: 0.2, y: 0.35, fingers: fist }), hand({ x: 0.8, y: 0.35, fingers: fist, handedness: 'Left' })]);
   assert.equal(t.update(fists, 0).active, false);
 });
+
+// ---- Noice: thumbs up beside the face + tongue click ----
+const thumbAt = (x, y) => det([hand({ x, y, gesture: 'Thumb_Up', fingers: { index: 'curl', middle: 'curl', ring: 'curl', pinky: 'curl' } })]);
+const mic = () => ({ running: true, lastSpikeAt: -Infinity, lastClickAt: -Infinity, spikeSince(t) { return this.lastSpikeAt >= t; } });
+
+test('Noice: thumb beside the face fires on a tongue click (with mic)', () => {
+  const audio = mic();
+  const t = createTrigger({ type: 'thumb-by-face' }, { audio: () => audio });
+  let fired = 0;
+  for (let ms = 0; ms <= 1500; ms += 50) if (t.update(thumbAt(0.68, 0.45), ms).active) fired++;
+  assert.equal(fired, 0, 'no click, no fire, even when held');
+  audio.lastClickAt = 1520;
+  assert.equal(t.update(thumbAt(0.68, 0.45), 1550).active, true);
+});
+
+test('Noice: a click before the thumb has been up 200 ms does not count', () => {
+  const audio = mic();
+  const t = createTrigger({ type: 'thumb-by-face' }, { audio: () => audio });
+  t.update(thumbAt(0.68, 0.45), 0);
+  audio.lastClickAt = 50;
+  assert.equal(t.update(thumbAt(0.68, 0.45), 100).active, false);
+});
+
+test('Noice: thumbs up at chest height never fires', () => {
+  const audio = mic();
+  const t = createTrigger({ type: 'thumb-by-face' }, { audio: () => audio });
+  let fired = false;
+  for (let ms = 0; ms <= 2000; ms += 50) { audio.lastClickAt = ms; fired ||= t.update(thumbAt(0.5, 0.88), ms).active; }
+  assert.equal(fired, false);
+});
+
+test('Noice without mic: hold the thumb beside the face for 1.2 s', () => {
+  const t = createTrigger({ type: 'thumb-by-face' }, { audio: () => null });
+  assert.equal(t.update(thumbAt(0.32, 0.45), 0).active, false);
+  assert.equal(t.update(thumbAt(0.32, 0.45), 1000).active, false);
+  assert.equal(t.update(thumbAt(0.32, 0.45), 1250).active, true);
+});
+
+test('classifyTransient tells clicks from snaps and ignores speech', async () => {
+  const { classifyTransient } = await import('../extension/src/content/audio.js');
+  const rate = 48000, n = 1024;
+  const burst = (peak, ms) => { const b = new Float32Array(n); const len = Math.round(rate * ms / 1000); for (let i = 0; i < Math.min(n, len); i++) b[i] = Math.sin(i * 0.9) * peak * Math.exp(-i / (len / 4)); return b; };
+  const speech = new Float32Array(n).map((_, i) => Math.sin(i * 0.05) * 0.2 + Math.sin(i * 0.13) * 0.1);
+  assert.equal(classifyTransient(burst(0.12, 6), 0.01), 'click');
+  assert.equal(classifyTransient(burst(0.5, 8), 0.01), 'snap');
+  assert.equal(classifyTransient(speech, 0.01), null);
+  assert.equal(classifyTransient(new Float32Array(n), 0.01), null);
+});
