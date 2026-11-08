@@ -38,6 +38,9 @@
         "https://meet.google.com/*"
       ],
       "js": [
+        "main/bridge.js",
+        "main/track-wrap.js",
+        "main/sender-hook.js",
         "inject.js"
       ],
       "run_at": "document_start",
