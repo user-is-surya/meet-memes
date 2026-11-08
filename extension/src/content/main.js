@@ -15,6 +15,21 @@ import { Preview, toast } from './preview.js';
 import { createTrigger, TriggerArbiter } from '../triggers/index.js';
 import { createEffect } from '../renderers/index.js';
 
+// Keep the last few warnings/errors for "Copy diagnostics" in the popup.
+const LOG = [];
+for (const level of ['warn', 'error']) {
+  const orig = console[level].bind(console);
+  console[level] = (...args) => {
+    try {
+      const text = args.map((x) => (x && x.stack) || String(x)).join(' ');
+      if (/meet-memes/.test(text)) { LOG.push(level + ': ' + text.slice(0, 500)); if (LOG.length > 40) LOG.shift(); }
+    } catch { /* ignore */ }
+    orig(...args);
+  };
+}
+window.addEventListener('error', (e) => { LOG.push('error: ' + (e.message || '') + ' @ ' + (e.filename || '') + ':' + (e.lineno || '')); if (LOG.length > 40) LOG.shift(); });
+window.addEventListener('unhandledrejection', (e) => { LOG.push('rejection: ' + String(e.reason && (e.reason.stack || e.reason)).slice(0, 500)); if (LOG.length > 40) LOG.shift(); });
+
 const RECENT_FACE_MS = 1500;
 const DETECT_WIDTH = 640;
 
@@ -90,6 +105,7 @@ class App {
     window.addEventListener('keydown', (e) => this.onKey(e), true);
     chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
       if (msg && msg.type === 'status') reply(this.status());
+      if (msg && msg.type === 'diagnostics') reply(this.diagnostics());
     });
     this.pill = new Pill({
       getState: () => this.settings,
@@ -304,6 +320,28 @@ class App {
       face: !!this.det.face,
       mic: this.audio.running,
       lastFired: this.lastFired && { id: this.lastFired.id, agoMs: Math.round(now - this.lastFired.at) },
+    };
+  }
+
+  // Everything needed to debug a problem in a real call, as plain JSON (no images).
+  diagnostics() {
+    const vids = [...document.querySelectorAll('video')].map((v) => {
+      const st = v.srcObject && v.srcObject.getVideoTracks ? v.srcObject.getVideoTracks().map((t) => t.label + (t.enabled ? '' : ':disabled') + ':' + t.readyState) : [];
+      const r = v.getBoundingClientRect();
+      return { self: v.dataset.meetMemesSelf || '', size: v.videoWidth + 'x' + v.videoHeight, box: Math.round(r.width) + 'x' + Math.round(r.height), transform: getComputedStyle(v).transform, tracks: st };
+    });
+    return {
+      version: chrome.runtime.getManifest().version,
+      ua: navigator.userAgent,
+      url: location.href.replace(/\/[a-z]{3}-[a-z]{4}-[a-z]{3}.*/, '/<meeting>'),
+      status: this.status(),
+      dataset: { ...this.root.dataset },
+      settings: { ...this.settings, memes: undefined },
+      memes: this.memes.map((m) => ({ id: m.def.id, enabled: this.enabledMemes.includes(m), active: m.effect.isActive(performance.now()) })),
+      det: { hands: this.det.hands.length, face: !!this.det.face, mask: !!this.det.mask, eyes: !!(this.det.face && this.det.face.eyes) },
+      compositor: { mode: this.compositor.mode, warm: !!this.compositor.warm, quality: this.compositor.quality },
+      videos: vids,
+      log: LOG.slice(),
     };
   }
 

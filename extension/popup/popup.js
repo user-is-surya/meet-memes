@@ -126,6 +126,18 @@ async function main() {
   }
 
   $('manage').addEventListener('click', () => chrome.runtime.openOptionsPage());
+  $('diag').addEventListener('click', async () => {
+    let report = { error: 'Open the popup while on the Meet tab.' };
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && /^https:\/\/meet\.google\.com\//.test(tab.url || '')) {
+        report = await chrome.tabs.sendMessage(tab.id, { type: 'diagnostics' }).catch((e) => ({ error: 'Extension not running in this tab (refresh Meet): ' + e.message }));
+      }
+    } catch (e) { report = { error: String(e) }; }
+    await navigator.clipboard.writeText(JSON.stringify(report, null, 1));
+    $('diag').textContent = '✓ Copied';
+    setTimeout(() => { $('diag').textContent = '📋 Copy diagnostics'; }, 2000);
+  });
   $('check').addEventListener('click', async () => {
     $('check').textContent = 'Checking…';
     const update = await chrome.runtime.sendMessage({ type: 'check-update' });

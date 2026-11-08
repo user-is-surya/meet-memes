@@ -25,6 +25,11 @@
       if (!root) return frame;
       root.dataset.sourceEnabled = String(source.enabled !== false);
       if (root.dataset.path !== MM.stats.path) root.dataset.path = MM.stats.path;
+      MM.statN = (MM.statN || 0) + 1;
+      if (MM.statN % 30 === 1) {
+        root.dataset.mainStats = JSON.stringify({ ...MM.stats, frameSize: frame.displayWidth + 'x' + frame.displayHeight,
+          wrappers: [...MM.wrappers.values()].map((w) => w.kind + ':' + (w.source.label || '?') + (w.stopped ? ':stopped' : '')) });
+      }
       const mode = root.dataset.mode;
       if (!mode || mode === 'off' || source.enabled === false) return frame;
 
@@ -52,6 +57,7 @@
       return frame;
     } catch (err) {
       console.warn('[meet-memes] frame error', err);
+      try { if (root) root.dataset.mainError = String(err && err.stack || err).slice(0, 400); } catch { /* ignore */ }
       return frame;
     }
   };
