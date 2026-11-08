@@ -3,3 +3,6 @@ extension/vendor/
 *.zip
 .DS_Store
 Thumbs.db
+.superpowers/
+tests/e2e/person.y4m
+tests/e2e/.profile/
