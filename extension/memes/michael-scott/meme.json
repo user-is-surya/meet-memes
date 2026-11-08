@@ -10,6 +10,7 @@
   "hotkey": "Alt+Shift+4",
   "cooldownMs": 4000,
   "priority": 6,
+  "sound": "sound.ogg",
   "trigger": {
     "type": "hands-over-face",
     "hands": 2,
@@ -17,9 +18,11 @@
   },
   "render": {
     "type": "fullscreen",
-    "asset": "michael.gif",
-    "fit": "contain",
-    "durationMs": 3500,
-    "fallbackText": "NO, GOD! PLEASE, NO!"
+    "clip": "clip.webp",
+    "minMs": 1500,
+    "releaseMs": 1000,
+    "fadeMs": 250,
+    "fallbackText": "NO, GOD! PLEASE, NO!",
+    "stopSoundOnEnd": true
   }
 }

@@ -17,10 +17,7 @@
   },
   "render": {
     "type": "aura",
-    "asset": "aura.gif",
     "color": "#b26bff",
-    "position": "bottom-right",
-    "size": 0.35,
     "caption": "+1000 AURA",
     "hold": true,
     "lingerMs": 1500,
