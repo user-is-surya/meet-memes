@@ -41,6 +41,7 @@
         "main/bridge.js",
         "main/track-wrap.js",
         "main/sender-hook.js",
+        "main/self-view.js",
         "inject.js"
       ],
       "run_at": "document_start",

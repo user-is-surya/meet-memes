@@ -9,6 +9,7 @@
 
   MM.dropWrapper = (wrapper) => {
     if (MM.wrappers.get(wrapper.source) === wrapper) MM.wrappers.delete(wrapper.source);
+    try { if (MM.selfView) MM.selfView.onDropped(wrapper); } catch { /* ignore */ }
     wrapper.stop();
   };
 
@@ -22,7 +23,11 @@
       if (!wrapper) return track;
       MM.wrappers.set(track, wrapper);
       MM.outputs.add(wrapper.output);
-      if (wrapper.kind === 'video') { MM.stats.videoWrapped++; MM.stats.path = 'sender'; }
+      if (wrapper.kind === 'video') {
+        MM.stats.videoWrapped++;
+        MM.stats.path = 'sender';
+        try { if (MM.selfView) MM.selfView.onWrapped(wrapper); } catch { /* ignore */ }
+      }
       else MM.stats.audioWrapped++;
     }
     wrapper.refs++;

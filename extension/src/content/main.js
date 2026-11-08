@@ -6,6 +6,7 @@ import {
 import { ModeController } from './modes.js';
 import { Pill } from './pill.js';
 import { Compositor } from '../gfx/compositor.js';
+import { SelfViewOverlay } from './charge-ring.js';
 import { EngineClient } from './engine-client.js';
 import { AssetStore } from './assets.js';
 import { SnapListener } from './audio.js';
@@ -73,9 +74,14 @@ class App {
     });
 
     this.src.addEventListener('meet-memes-frame', () => this.onFrame());
+    this.overlay = new SelfViewOverlay();
     this.root.addEventListener('meet-memes-debug', (e) => {
-      if (e.detail && e.detail.cmd === 'loseGL') this.compositor.loseContext();
+      const d = e.detail || {};
+      if (d.cmd === 'loseGL') this.compositor.loseContext();
+      if (d.cmd === 'ring') this.overlay.show(d.id, d.progress, { x: d.x, y: d.y });
     });
+    // Keep the self-view's mirror styling right as Meet re-renders it.
+    setInterval(() => this.overlay.setMirror(!!this.settings.mirror && isOn(this.settings)), 1000);
     window.addEventListener('keydown', (e) => this.onKey(e), true);
     chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
       if (msg && msg.type === 'status') reply(this.status());
@@ -117,7 +123,9 @@ class App {
     this.root.dataset.mode = on ? s.audience : 'off';
     this.root.dataset.mirror = s.mirror ? '1' : '0';
     if (this.pill) this.pill.update();
+    if (this.overlay) this.overlay.setMirror(!!s.mirror && on);
     if (this.pill) this.pill.update();
+    if (this.overlay) this.overlay.setMirror(!!s.mirror && on);
     this.enabledMemes = on ? this.memes.filter((m) => isMemeEnabled(s, m.def)) : [];
     this.gesturesOn = s.activeMode === 'meme';
     this.needsDetection = this.gesturesOn && this.enabledMemes.some((m) => m.trigger);
