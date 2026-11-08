@@ -6,7 +6,7 @@
 //   drawFrame({ mono, contrast, brightness, saturation, tint:[r,g,b,amt], zoom:{cx,cy,scale}, shake:{x,y,rot} })
 //   drawImage(img, x, y, w, h, { alpha, rotate, blend, crop:[u,v,w,h] , key, static })
 //   drawText(text, x, y, { size (fraction of frame height), font, weight, fill, stroke, strokeWidth, align, glow, italic, alpha, scale, rotate, blend })
-//   drawPerson({ alpha, feather, tex })     the frame cut out by the segmentation mask
+//   drawPerson({ alpha, feather | lo, hi })  the frame cut out by the segmentation mask (mask edge ramp lo..hi)
 //   particles(ps, { blend, shape: 'soft'|'flake'|'spark', sizeScale })   ps = ParticleSystem (sizes in px at 720p)
 //   pass(name, { uniforms, textures: { uName: source } , blend })   full-frame shader (see registerPass)
 //   draw2D((ctx, w, h) => {})               escape hatch: draw with Canvas2D on a transparent overlay
@@ -54,10 +54,10 @@ void main() { vec4 c = texture(uTex, vUv); outColor = vec4(c.rgb, c.a * uAlpha);
 const PERSON_FS = FS_HEADER + `
 uniform sampler2D uTex;
 uniform sampler2D uMask;
-uniform float uAlpha, uFeather;
+uniform float uAlpha, uLo, uHi;
 void main() {
   float m = texture(uMask, vLocal).a;
-  m = smoothstep(0.5 - uFeather, 0.5 + uFeather, m);
+  m = smoothstep(uLo, uHi, m);
   outColor = vec4(texture(uTex, vLocal).rgb, m * uAlpha);
 }`;
 
@@ -174,7 +174,8 @@ export class GLGraphics {
     this.c.gl.useProgram(p.prog);
     this.sampler(p, 'uTex', 0);
     this.sampler(p, 'uMask', 1);
-    this.c.drawQuad(p, { ...this.base(), uRect: [0, 0, 1, 1], uAlpha: o.alpha ?? 1, uFeather: o.feather ?? 0.15 });
+    const f = o.feather ?? 0.15;
+    this.c.drawQuad(p, { ...this.base(), uRect: [0, 0, 1, 1], uAlpha: o.alpha ?? 1, uLo: o.lo ?? 0.5 - f, uHi: o.hi ?? 0.5 + f });
   }
 
   particles(ps, o = {}) {

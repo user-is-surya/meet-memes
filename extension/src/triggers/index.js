@@ -131,6 +131,27 @@ const conditions = {
     };
   },
 
+  // Fanum broccoli: both hands held level at chest height, like holding a plate.
+  'plate-pose'() {
+    return (det) => {
+      if (det.hands.length < 2) return null;
+      const box = det.face && det.face.box;
+      const faceW = box ? box.w : 0.18, faceH = box ? box.h : 0.25;
+      const top = box ? box.y + box.h : 0.55, bottom = box ? box.y + box.h + 2 * faceH : 1.05;
+      const [a, b] = det.hands;
+      const pa = palm(a.landmarks), pb = palm(b.landmarks);
+      for (const [h, p] of [[a, pa], [b, pb]]) {
+        if (isFist(h.landmarks, det.aspect) || h.gesture.name === 'Closed_Fist') return null;
+        if (p.y < top || p.y > bottom) return null;
+      }
+      if (Math.abs(pa.x - pb.x) * det.aspect > 3 * faceW * det.aspect) return null;
+      if (Math.abs(pa.y - pb.y) > faceH * 0.6) return null;
+      const mid = { x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 };
+      const span = Math.max(handSize(a.landmarks, det.aspect), handSize(b.landmarks, det.aspect)) * 1.6 + Math.abs(pa.x - pb.x);
+      return { hand: mid, plate: { x: mid.x, y: mid.y, span } };
+    };
+  },
+
   // Throw: a fast hand sweep, by default starting from a fist (holding the broccoli).
   throw(spec) {
     const windowMs = spec.windowMs ?? 350, minDistance = spec.minDistance ?? 0.35;

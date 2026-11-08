@@ -227,3 +227,46 @@ test('classifyTransient tells clicks from snaps and ignores speech', async () =>
   assert.equal(classifyTransient(speech, 0.01), null);
   assert.equal(classifyTransient(new Float32Array(n), 0.01), null);
 });
+
+// ---- Fanum broccoli: plate pose, then the fling (sweep) ----
+const plateHands = (y = 0.78, gap = 0.18) => [
+  hand({ x: 0.5 - gap / 2, y, dir: { x: 0.3, y: -0.4 }, s: 0.05 }),
+  hand({ x: 0.5 + gap / 2, y, dir: { x: -0.3, y: -0.4 }, s: 0.05, handedness: 'Left' }),
+];
+
+test('plate pose: both hands at chest height held 400 ms', () => {
+  const t = createTrigger({ type: 'plate-pose', holdMs: 400 }, ctx);
+  assert.equal(t.update(det(plateHands()), 0).active, false);
+  assert.equal(t.update(det(plateHands()), 200).active, false);
+  const r = t.update(det(plateHands()), 450);
+  assert.equal(r.active, true);
+  assert.ok(Math.abs(r.info.plate.x - 0.5) < 0.05 && r.info.plate.span > 0.1);
+});
+
+test('plate pose: hands raised by the head (Absolute Cinema) or one hand do not count', () => {
+  const t = createTrigger({ type: 'plate-pose', holdMs: 0 }, ctx);
+  assert.equal(t.update(det(plateHands(0.3)), 0).active, false);
+  assert.equal(t.update(det([plateHands()[0]]), 10).active, false);
+  assert.equal(t.update(det([hand({ x: 0.4, y: 0.8, fingers: fist }), hand({ x: 0.6, y: 0.8, fingers: fist })]), 20).active, false);
+  assert.equal(t.update(det(plateHands(0.78, 0.7)), 30).active, false, 'hands far apart');
+});
+
+test('detectSweep: a fast fling up past the shoulder', async () => {
+  const { detectSweep } = await import('../extension/src/fx/sweep.js');
+  const face = { box: { x: 0.4, y: 0.2, w: 0.2, h: 0.3 } };
+  const hist = [{ t: 0, x: 0.45, y: 0.8 }, { t: 100, x: 0.42, y: 0.65 }, { t: 200, x: 0.36, y: 0.42 }];
+  assert.equal(detectSweep(hist, face, 200), 'left');
+  const right = hist.map((p) => ({ ...p, x: 1 - p.x }));
+  assert.equal(detectSweep(right, face, 200), 'right');
+});
+
+test('detectSweep: slow raises and downward moves are not flings', async () => {
+  const { detectSweep } = await import('../extension/src/fx/sweep.js');
+  const face = { box: { x: 0.4, y: 0.2, w: 0.2, h: 0.3 } };
+  const slow = [{ t: 0, x: 0.45, y: 0.8 }, { t: 600, x: 0.42, y: 0.6 }, { t: 1200, x: 0.36, y: 0.42 }];
+  assert.equal(detectSweep(slow, face, 1200), null);
+  const down = [{ t: 0, x: 0.36, y: 0.42 }, { t: 200, x: 0.45, y: 0.8 }];
+  assert.equal(detectSweep(down, face, 200), null);
+  const notHigh = [{ t: 0, x: 0.45, y: 0.95 }, { t: 200, x: 0.4, y: 0.62 }];
+  assert.equal(detectSweep(notHigh, face, 200), null, 'must end above the shoulder line');
+});

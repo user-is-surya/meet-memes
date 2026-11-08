@@ -7,6 +7,7 @@ import { ThrowEffect } from './throw.js';
 import { ThanosEffect } from './thanos.js';
 import { ClipPopEffect } from './clip-pop.js';
 import { CinemaEffect } from './cinema.js';
+import { BroccoliEffect } from './broccoli.js';
 
 const TYPES = {
   overlay: OverlayEffect,
@@ -17,6 +18,7 @@ const TYPES = {
   thanos: ThanosEffect,
   'clip-pop': ClipPopEffect,
   cinema: CinemaEffect,
+  broccoli: BroccoliEffect,
 };
 
 export function createEffect(def, deps) {
