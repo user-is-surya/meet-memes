@@ -12,7 +12,7 @@ export const EXT = join(here, '..', '..', 'extension');
 const Y4M = join(here, 'person.y4m');
 const HTML = readFileSync(join(here, 'fake-meet.html'), 'utf8');
 
-export async function open({ effect = 'blur', settings = null, harness = true } = {}) {
+export async function open({ effect = 'blur', settings = null, harness = true, audio = '' } = {}) {
   if (!existsSync(Y4M)) throw new Error('tests/e2e/person.y4m missing: run `npm run e2e:setup`');
   const profile = join(tmpdir(), 'meet-memes-e2e-' + process.pid + '-' + Math.random().toString(36).slice(2));
   const ctx = await chromium.launchPersistentContext(profile, {
@@ -37,7 +37,7 @@ export async function open({ effect = 'blur', settings = null, harness = true } 
   const page = await ctx.newPage();
   page.on('console', (m) => { if (process.env.E2E_LOG) console.log('[page]', m.text()); });
   if (harness) {
-    await page.goto(`https://meet.google.com/harness?effect=${effect}`);
+    await page.goto(`https://meet.google.com/harness?effect=${effect}&audio=${audio}`);
     await page.waitForFunction(() => window.harness && (window.harness.ready || window.harness.error));
     const err = await page.evaluate(() => window.harness.error);
     if (err) throw new Error('harness failed: ' + err);

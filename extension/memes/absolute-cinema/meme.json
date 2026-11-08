@@ -11,6 +11,7 @@
   "hotkey": "Alt+Shift+2",
   "cooldownMs": 2500,
   "priority": 2,
+  "sound": "synth:boom",
   "trigger": {
     "type": "both-hands-up",
     "holdMs": 400

@@ -16,7 +16,15 @@
   const h = window.harness = { ready: false, log: [] };
   const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 360 }, audio: true });
   const cam = stream.getVideoTracks()[0];
-  const mic = stream.getAudioTracks()[0];
+  let mic = stream.getAudioTracks()[0];
+  if (params.get('audio') === 'silent') {
+    // A live but silent "microphone", so meme sound is easy to measure at the receiver.
+    const ac = new AudioContext();
+    const dst = ac.createMediaStreamDestination();
+    const osc = ac.createConstantSource(); osc.offset.value = 0; osc.connect(dst); osc.start();
+    mic = dst.stream.getAudioTracks()[0];
+    stream.removeTrack(stream.getAudioTracks()[0]); stream.addTrack(mic);
+  }
 
   let sendTrack = cam;
   if (effect === 'blur') {

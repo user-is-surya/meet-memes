@@ -7,6 +7,7 @@ import { ModeController } from './modes.js';
 import { Pill } from './pill.js';
 import { Compositor } from '../gfx/compositor.js';
 import { SelfViewOverlay } from './charge-ring.js';
+import { SfxBus } from './sfx.js';
 import { EngineClient } from './engine-client.js';
 import { AssetStore } from './assets.js';
 import { SnapListener } from './audio.js';
@@ -63,6 +64,7 @@ class App {
       if (state === 'error') toast(`Meet Memes: gesture detection failed to load (${err})`, 6000);
     };
     this.assets = new AssetStore(this.engine);
+    this.sfx = new SfxBus({ getVolume: () => this.settings.soundVolume, getLocal: () => this.settings.hearSoundsLocally });
     this.audio = new SnapListener();
     this.preview = new Preview(() => { this.previewDismissed = true; this.preview.hide(); });
     this.triggerCtx = { audio: () => this.audio };
@@ -110,11 +112,15 @@ class App {
     if (!this.bundled) this.bundled = await loadBundledMemes((p) => this.engine.fetchText(p));
     const defs = [...applyOverrides(this.bundled, this.settings), ...await getCustomMemes()];
     for (const m of this.memes) m.effect.stop();
-    const deps = { assets: this.assets };
+    const deps = { assets: this.assets, sfx: this.sfx };
     this.memes = defs.map((def) => {
       const effect = createEffect(def, deps);
       if (!effect) return null;
       effect.load().catch((err) => console.warn('[meet-memes] load failed', def.id, err));
+      if (def.sound) {
+        const ref = def.sound.startsWith('synth:') ? def.sound : (def.base || '') + def.sound;
+        this.sfx.load(effect.soundKey, ref, (p) => this.engine.fetchBytes(p), def.soundTrim || {});
+      }
       return { def, effect, trigger: createTrigger(def.trigger, this.triggerCtx), cooldownUntil: 0, wasActive: false };
     }).filter(Boolean);
   }
@@ -125,8 +131,10 @@ class App {
     this.root.dataset.mode = on ? s.audience : 'off';
     this.root.dataset.mirror = s.mirror ? '1' : '0';
     if (this.pill) this.pill.update();
+    if (this.sfx) this.sfx.setVolume(s.soundVolume);
     if (this.overlay) this.overlay.setMirror(!!s.mirror && on);
     if (this.pill) this.pill.update();
+    if (this.sfx) this.sfx.setVolume(s.soundVolume);
     if (this.overlay) this.overlay.setMirror(!!s.mirror && on);
     this.enabledMemes = on ? this.memes.filter((m) => isMemeEnabled(s, m.def)) : [];
     this.gesturesOn = s.activeMode === 'meme';
@@ -159,9 +167,14 @@ class App {
     const frame = this.frame = this.compositor.frameFor(src, mirror);
     this.maybeDetect(now);
 
-    const active = this.enabledMemes
-      .filter((m) => m.effect.isActive(now))
-      .sort((a, b) => a.effect.layer - b.effect.layer);
+    const active = [];
+    for (const m of this.enabledMemes) {
+      const on = m.effect.isActive(now);
+      if (on) active.push(m);
+      else if (m.showing) m.effect.onEnd();
+      m.showing = on;
+    }
+    active.sort((a, b) => a.effect.layer - b.effect.layer);
 
     if (active.length || mirror) {
       const g = this.compositor.begin(frame, { now, mask: this.det.mask });
