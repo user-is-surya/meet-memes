@@ -23,5 +23,6 @@
     "lingerMs": 1500,
     "minMs": 2000,
     "durationMs": 4000
-  }
+  },
+  "illustration": "feel-the-aura.svg"
 }

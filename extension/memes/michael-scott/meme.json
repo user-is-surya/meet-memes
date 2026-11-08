@@ -24,5 +24,6 @@
     "fadeMs": 250,
     "fallbackText": "NO, GOD! PLEASE, NO!",
     "stopSoundOnEnd": true
-  }
+  },
+  "illustration": "michael-scott.svg"
 }

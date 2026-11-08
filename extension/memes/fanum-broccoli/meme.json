@@ -22,5 +22,6 @@
     "type": "broccoli",
     "holdPlateMs": 4000,
     "boomMs": 4000
-  }
+  },
+  "illustration": "fanum-broccoli.svg"
 }

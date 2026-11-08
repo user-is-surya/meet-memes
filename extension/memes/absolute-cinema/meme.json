@@ -24,5 +24,6 @@
     "lingerMs": 1000,
     "fadeMs": 300,
     "durationMs": 3500
-  }
+  },
+  "illustration": "absolute-cinema.svg"
 }

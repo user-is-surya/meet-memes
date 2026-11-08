@@ -24,5 +24,6 @@
     "fadeMs": 300,
     "durationMs": 2500,
     "soundLoop": true
-  }
+  },
+  "illustration": "laser-eyes.svg"
 }

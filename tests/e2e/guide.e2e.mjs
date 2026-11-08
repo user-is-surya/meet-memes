@@ -12,16 +12,20 @@ test('guide renders a complete card for every meme', async () => {
     const p = await h.ctx.newPage();
     await p.goto(`chrome-extension://${h.extId}/guide/guide.html`, { waitUntil: 'domcontentloaded' });
     await p.waitForSelector('.meme-card');
+    await p.waitForSelector('.meme-card .illus svg');
+    await p.waitForTimeout(300);
     const cards = await p.$$eval('.meme-card', (els) => els.map((el) => ({
       what: el.querySelector('[data-part="origin"]')?.textContent.trim(),
       happens: el.querySelector('[data-part="what-happens"]')?.textContent.trim(),
       how: el.querySelector('[data-part="how"]')?.textContent.trim(),
       hotkey: el.querySelector('kbd')?.textContent.trim(),
+      illus: !!el.querySelector('.illus svg'),
     })));
     assert.equal(cards.length, memeCount);
     for (const c of cards) {
       assert.ok(c.what && c.happens && c.how, JSON.stringify(c));
       assert.match(c.hotkey, /Alt\+Shift\+\d/);
+      assert.ok(c.illus, 'pose illustration shown');
     }
     for (const id of ['start', 'memes', 'draw', 'spell', 'utilities', 'practice', 'troubleshooting']) {
       assert.ok(await p.$(`section#${id}`), `section ${id}`);

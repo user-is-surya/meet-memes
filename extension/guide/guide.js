@@ -35,11 +35,26 @@ function renderCards(defs, practice) {
       tips.appendChild(li);
     }
     if (def.illustration) {
-      const img = document.createElement('img');
-      img.className = 'illus';
-      img.alt = `How to do the ${def.name} gesture`;
-      img.src = chrome.runtime.getURL(`guide/illustrations/${def.illustration}`);
-      card.querySelector('header').after(img);
+      // Inlined (not <img>) so the drawing takes the page's text colour in light and dark themes.
+      const illus = document.createElement('div');
+      illus.className = 'illus';
+      illus.setAttribute('role', 'img');
+      illus.setAttribute('aria-label', `How to do the ${def.name} gesture`);
+      card.querySelector('header').after(illus);
+      fetchText(`guide/illustrations/${def.illustration}`).then((svg) => { if (svg.trim().startsWith('<svg')) illus.innerHTML = svg; }).catch(() => {});
+    }
+    if (def.sound && !def.sound.startsWith('synth:')) {
+      const play = document.createElement('button');
+      play.className = 'play-sound';
+      play.textContent = '▶ Play sound';
+      play.addEventListener('click', () => {
+        const a = new Audio(chrome.runtime.getURL(`${def.base}${def.sound}`));
+        const trim = def.soundTrim || {};
+        a.currentTime = trim.from || 0;
+        if (trim.to) a.addEventListener('timeupdate', () => { if (a.currentTime >= trim.to) a.pause(); });
+        a.play().catch(() => {});
+      });
+      card.querySelector('footer').prepend(play);
     }
     card.querySelector('.practise').addEventListener('click', () => {
       practice.select(def.id);

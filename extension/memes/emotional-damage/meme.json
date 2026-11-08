@@ -25,5 +25,6 @@
     "durationMs": 2600,
     "zoom": 1.6,
     "stopSoundOnEnd": true
-  }
+  },
+  "illustration": "emotional-damage.svg"
 }

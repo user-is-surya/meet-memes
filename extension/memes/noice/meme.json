@@ -26,5 +26,6 @@
     "punchScale": 1.15,
     "fallbackText": "NOICE 👌",
     "caption2": "noice"
-  }
+  },
+  "illustration": "noice.svg"
 }

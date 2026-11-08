@@ -1,18 +1,26 @@
 # Meet Memes ✨
 
-A Chrome extension that turns your gestures into meme effects in Google Meet, and everyone in the call sees them.
-Snap your fingers and you turn to dust like Thanos. Raise both hands and you're in the Absolute Cinema poster.
+A Chrome extension that turns your gestures into meme effects in Google Meet, and everyone in the call sees and hears them.
+It works with Meet's background blur and virtual backgrounds.
 
 | Meme | Do this | Hotkey |
 |---|---|---|
-| **Thanos snap**: you crumble into dust and blow away | Snap your fingers (snap again to come back) | `Alt+Shift+1` |
-| **Absolute Cinema**: your face inside the poster | Raise both open hands beside your head | `Alt+Shift+2` |
-| **Noice** | Thumbs up 👍 | `Alt+Shift+3` |
-| **Michael Scott**: "No, God, please no" | Cover your face with both hands | `Alt+Shift+4` |
-| **Fanum broccoli throw** 🥦 | Make a fist and throw | `Alt+Shift+5` |
-| **Feel the aura**: purple glow and +1000 aura | Point both index fingers at your head | `Alt+Shift+6` |
+| **Thanos snap**: a beat of silence, then you crumble to ash and drift away, leaving your empty room. Snap again to re-form | Snap your fingers | `Alt+Shift+1` |
+| **Absolute Cinema**: you become the black-and-white poster | Both open hands beside your head, fingers spread | `Alt+Shift+2` |
+| **Noice**: the clip pops up, your face punch-zooms | Thumbs up beside your face + tongue click | `Alt+Shift+3` |
+| **Michael Scott**: "No, God, please no" full-screen | Cover your face with both hands | `Alt+Shift+4` |
+| **Fanum broccoli**: fling the plate, it explodes behind you | Hands like holding a plate, then fling over your shoulder | `Alt+Shift+5` |
+| **Feel the aura**: purple glow and +1000 AURA | Point both index fingers at your head | `Alt+Shift+6` |
+| **Emotional Damage**: crash zoom, red flash, the shout | One flat hand held on your chest | `Alt+Shift+7` |
+| **Laser eyes**: red flares; beams where you look | Stare wide-eyed, brows up (no hands) | `Alt+Shift+8` |
 
-`Alt+Shift+0` is the **panic key**. It turns everything off instantly and your camera goes back to normal.
+**Modes:** 🎭 Meme (`Alt+Shift+M`), ✏️ Draw (`Alt+Shift+D`, coming soon), ✨ Spell (`Alt+Shift+S`, coming soon).
+Switch from the floating 🎭 button on the Meet page or the toolbar popup.
+**Mirror** (`Alt+Shift+R`): others see your selfie view; meme text stays readable.
+`Alt+Shift+0` is the **panic key**: everything off instantly, camera back to normal.
+
+The extension has a full **Guide** (popup → 📖 Guide) with every meme, its gesture, a Practice tab that
+rehearses gestures on your camera, and troubleshooting.
 
 You can also attach **your own image or GIF to any action** (thumbs down, peace sign, big smile, mouth open, and more). It's saved only in your browser.
 
@@ -55,36 +63,38 @@ The only network request is a check of this repo's GitHub Releases for updates.
 ## How it works
 
 ```
-Meet ──getUserMedia──▶ inject.js (Meet's page)
-                        │ wraps the camera track with insertable streams;
-                        │ each frame is drawn into a hidden canvas
-                        ▼
-                 content script (src/content)
-                        │ sends ~15 fps snapshots to ──▶ engine iframe (MediaPipe:
-                        │                                hands, face, segmentation)
-                        │ ◀── landmarks + person mask ───┘
-                        │ triggers (src/triggers) decide what fired
-                        │ renderers (src/renderers) compose the frame
-                        ▼
-              processed frame goes back to Meet, and the call sees the meme
+Meet's camera -> Meet's own blur / virtual background -> RTCRtpSender
+                                                          | main/sender-hook.js swaps in our track
+                                                          v
+              main/track-wrap.js + bridge.js: each frame -> hidden canvas -> content script
+                        | WebGL2 compositor (src/gfx) draws the active memes on top
+                        | engine iframe (MediaPipe hands, face, segmentation) -> triggers (src/triggers)
+                        v
+              processed frame goes to the call; main/self-view.js shows the same in your self-view
+              meme sounds are mixed into the outgoing mic chunks (main/audio-mix.js), never while muted
 ```
 
-- `extension/inject.js` swaps Meet's camera track for a processed one. If anything fails, the raw camera is used.
-- `extension/engine/` runs MediaPipe inside an extension-origin iframe, because Meet's own security policy blocks it in the page.
-- `extension/memes/` holds the built-in memes. Each is a `meme.json` plus images. See [docs/ADDING_MEMES.md](docs/ADDING_MEMES.md).
+- Effects are drawn on the track Meet actually sends, after its background effects, so they stay sharp.
+  If that hook can't see Meet's track, a `getUserMedia` wrap takes over (the popup shows which path is active).
+- Anything failing falls back to your untouched camera and mic.
+- `extension/memes/` holds the memes: a `meme.json` each, plus clips (`npm run clips`). See [docs/ADDING_MEMES.md](docs/ADDING_MEMES.md).
 
 ## Development
 
 ```sh
 npm install
 npm run setup      # copies MediaPipe into extension/vendor and downloads the models
-npm test           # trigger unit tests
+npm test           # unit tests (triggers, replayed gesture traces, mixer, sender hook, effects)
 npm run check      # syntax, manifest and meme.json validation
+npm run e2e:setup  # one-time: fake camera files for the browser tests (needs yt-dlp + imageio-ffmpeg)
+npm run e2e        # browser tests: real Chromium + the extension on a fake Meet page
+npm run clips      # rebuild bundled meme clips/sounds from extension/memes/clips.json
 ```
 
 Load the `extension/` folder with **Load unpacked**. After editing code, click **Reload** on the extension and refresh the Meet tab.
 
-The built-in meme images go in `extension/memes/<meme>/`. [extension/memes/README.md](extension/memes/README.md) lists the expected filenames.
+Gesture tuning uses real recordings: Guide → Practice → "Record a trace" saves landmarks only (no video).
+Put them in `tests/fixtures/` and `npm test` replays them (see [tests/fixtures/README.md](tests/fixtures/README.md)).
 
 ### Releasing
 
