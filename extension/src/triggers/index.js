@@ -152,6 +152,28 @@ const conditions = {
     };
   },
 
+  // Emotional Damage: exactly one open, flat hand pressed on the chest (below the face,
+  // roughly under the chin, not out to the side).
+  'hand-on-chest'() {
+    return (det) => {
+      const face = det.face;
+      const box = face ? face.box : { x: 0.4, y: 0.2, w: 0.2, h: 0.3 };
+      const nose = face ? face.nose : { x: 0.5, y: 0.35 };
+      const onChest = det.hands.filter((h) => {
+        const lm = h.landmarks, p = palm(lm);
+        const tips = [L.INDEX_TIP, L.MIDDLE_TIP, L.RING_TIP, L.PINKY_TIP];
+        const meanReach = tips.reduce((s, t) => s + reach(lm, t, det.aspect), 0) / tips.length;
+        if (meanReach < 1.45 || h.gesture.name === 'Closed_Fist') return false;
+        const below = (p.y - (box.y + box.h)) / box.h;
+        if (below < 0.3 || below > 1.6) return false;
+        return Math.abs(p.x - nose.x) * det.aspect <= 0.9 * box.w * det.aspect;
+      });
+      const chestZone = det.hands.filter((h) => palm(h.landmarks).y > box.y + box.h * 1.2);
+      if (onChest.length !== 1 || chestZone.length !== 1) return null;
+      return { hand: palm(onChest[0].landmarks) };
+    };
+  },
+
   // Throw: a fast hand sweep, by default starting from a fist (holding the broccoli).
   throw(spec) {
     const windowMs = spec.windowMs ?? 350, minDistance = spec.minDistance ?? 0.35;

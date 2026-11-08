@@ -41,7 +41,7 @@ export class Effect {
 
   // Called once when the effect stops showing (looping sounds end here).
   onEnd() {
-    if (this.r.soundLoop) this.stopSound();
+    if (this.r.soundLoop || this.r.stopSoundOnEnd) this.stopSound();
   }
 
   fire(info, now, { hotkey = false } = {}) {

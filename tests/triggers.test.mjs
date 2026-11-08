@@ -270,3 +270,21 @@ test('detectSweep: slow raises and downward moves are not flings', async () => {
   const notHigh = [{ t: 0, x: 0.45, y: 0.95 }, { t: 200, x: 0.4, y: 0.62 }];
   assert.equal(detectSweep(notHigh, face, 200), null, 'must end above the shoulder line');
 });
+
+// ---- Emotional Damage: one flat hand on the chest ----
+const flat = (x, y, extra = {}) => hand({ x, y, s: 0.05, dir: { x: 0.2, y: -1 }, ...extra });
+
+test('Emotional Damage: one flat hand on the chest, held 350 ms', () => {
+  const t = createTrigger({ type: 'hand-on-chest', holdMs: 350 }, ctx);
+  assert.equal(t.update(det([flat(0.48, 0.82)]), 0).active, false);
+  assert.equal(t.update(det([flat(0.48, 0.82)]), 200).active, false);
+  assert.equal(t.update(det([flat(0.48, 0.82)]), 400).active, true);
+});
+
+test('Emotional Damage: hand on the chin, a fist, or two hands (plate pose) do not count', () => {
+  const t = createTrigger({ type: 'hand-on-chest', holdMs: 0 }, ctx);
+  assert.equal(t.update(det([flat(0.5, 0.55)]), 0).active, false, 'chin / face height');
+  assert.equal(t.update(det([hand({ x: 0.48, y: 0.82, fingers: fist })]), 10).active, false, 'fist');
+  assert.equal(t.update(det([flat(0.42, 0.82), flat(0.58, 0.82, { handedness: 'Left' })]), 20).active, false, 'both hands');
+  assert.equal(t.update(det([flat(0.95, 0.82)]), 30).active, false, 'off to the side');
+});

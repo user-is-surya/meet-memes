@@ -10,8 +10,8 @@ const ext = join(root, 'extension');
 const errors = [];
 const exists = (p) => access(p).then(() => true, () => false);
 
-const TRIGGERS = ['gesture', 'expression', 'both-hands-up', 'hands-over-face', 'hands-on-head', 'snap', 'throw', 'thumb-by-face', 'plate-pose'];
-const RENDERS = ['overlay', 'fullscreen', 'face-in-frame', 'aura', 'throw', 'thanos', 'clip-pop', 'cinema', 'broccoli'];
+const TRIGGERS = ['gesture', 'expression', 'both-hands-up', 'hands-over-face', 'hands-on-head', 'snap', 'throw', 'thumb-by-face', 'plate-pose', 'hand-on-chest'];
+const RENDERS = ['overlay', 'fullscreen', 'face-in-frame', 'aura', 'throw', 'thanos', 'clip-pop', 'cinema', 'broccoli', 'damage'];
 const GESTURES = ['Thumb_Up', 'Thumb_Down', 'Victory', 'ILoveYou', 'Open_Palm', 'Pointing_Up', 'Closed_Fist'];
 
 async function walk(dir) {
