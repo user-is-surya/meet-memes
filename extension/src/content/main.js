@@ -124,16 +124,19 @@ class App {
     const defs = [...applyOverrides(this.bundled, this.settings), ...await getCustomMemes()];
     for (const m of this.memes) m.effect.stop();
     const deps = { assets: this.assets, sfx: this.sfx, toast };
+    const loads = [];
+    delete this.root.dataset.memesLoaded;
     this.memes = defs.map((def) => {
       const effect = createEffect(def, deps);
       if (!effect) return null;
-      effect.load().catch((err) => console.warn('[meet-memes] load failed', def.id, err));
+      loads.push(effect.load().catch((err) => console.warn('[meet-memes] load failed', def.id, err)));
       if (def.sound) {
         const ref = def.sound.startsWith('synth:') ? def.sound : (def.base || '') + def.sound;
         this.sfx.load(effect.soundKey, ref, (p) => this.engine.fetchBytes(p), def.soundTrim || {});
       }
       return { def, effect, trigger: createTrigger(def.trigger, this.triggerCtx), cooldownUntil: 0, wasActive: false };
     }).filter(Boolean);
+    Promise.allSettled(loads).then(() => { this.root.dataset.memesLoaded = String(this.memes.length); });
   }
 
   applySettings() {

@@ -58,7 +58,7 @@ export async function open({ effect = 'blur', settings = null, harness = true, a
     async waitForEngine(ms = 30000) {
       await page.waitForFunction(() => {
         const r = document.getElementById('meet-memes-root');
-        return r && r.dataset.engine === 'ready';
+        return r && r.dataset.engine === 'ready' && !!r.dataset.memesLoaded;
       }, null, { timeout: ms }).catch(() => {});
     },
     // Waits until person masks are flowing (needed by Thanos / aura / explosions).

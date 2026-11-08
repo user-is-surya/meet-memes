@@ -16,11 +16,12 @@ function diff(a, b, box) {
 test('Noice clip plays (moving picture in the corner) with sound', async () => {
   const h = await open({ effect: 'none', audio: 'silent', cam: 'gray' });
   try {
-    await h.wait(3000);
+    await h.waitForEngine(60000);
+    await h.wait(2500); // let the call settle
     const base = await h.remoteRms();
     const before = await h.remoteFrame();
     await h.press('Alt+Shift+Digit3');
-    await h.wait(500);
+    await h.wait(700);
     const f1 = await h.remoteFrame();
     let loud = -120;
     for (let i = 0; i < 12; i++) { loud = Math.max(loud, await h.remoteRms()); await h.wait(50); }
