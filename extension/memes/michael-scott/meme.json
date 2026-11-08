@@ -4,7 +4,12 @@
   "how": "Cover your face with both hands and hold.",
   "hotkey": "Alt+Shift+4",
   "cooldownMs": 4000,
-  "trigger": { "type": "hands-over-face", "hands": 2, "holdMs": 700 },
+  "priority": 6,
+  "trigger": {
+    "type": "hands-over-face",
+    "hands": 2,
+    "holdMs": 700
+  },
   "render": {
     "type": "fullscreen",
     "asset": "michael.gif",

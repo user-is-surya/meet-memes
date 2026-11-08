@@ -4,7 +4,14 @@
   "how": "Make a fist and do a quick throwing motion.",
   "hotkey": "Alt+Shift+5",
   "cooldownMs": 3000,
-  "trigger": { "type": "throw", "minDistance": 0.35, "minSpeed": 1.6, "windowMs": 350, "requireFist": true },
+  "priority": 3,
+  "trigger": {
+    "type": "throw",
+    "minDistance": 0.35,
+    "minSpeed": 1.6,
+    "windowMs": 350,
+    "requireFist": true
+  },
   "render": {
     "type": "throw",
     "asset": "fanum.gif",

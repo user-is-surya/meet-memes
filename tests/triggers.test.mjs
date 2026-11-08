@@ -2,7 +2,7 @@
 // Run with: npm test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createTrigger } from '../extension/src/triggers/index.js';
+import { createTrigger, TriggerArbiter } from '../extension/src/triggers/index.js';
 
 // Builds 21 hand landmarks. Fingers point along `dir` from the wrist; `s` is the
 // wrist→knuckle length. Each finger is 'ext' (extended) or 'curl' (folded into the palm).
@@ -124,4 +124,65 @@ test('any-of trigger arrays and hotkey-only memes', () => {
   const face = { ...FACE, blendshapes: { jawOpen: 0.8 } };
   assert.equal(t.update(det([], face), 0).active, true);
   assert.equal(t.update(det([]), 10).active, false);
+});
+
+// ---- stability layer + arbiter ----
+const thumb = (on) => det([hand({ x: 0.5, y: 0.5, gesture: on ? 'Thumb_Up' : 'None' })]);
+
+test('stable: fires at 70% with dropouts in the hold window', () => {
+  const t = createTrigger({ type: 'gesture', gesture: 'Thumb_Up', holdMs: 450 }, ctx);
+  const pattern = [1, 1, 0, 1, 1, 0, 1, 0, 1, 1]; // 7 of 10, newest is a hit
+  let r;
+  pattern.forEach((on, i) => { r = t.update(thumb(on), i * 55); });
+  assert.equal(r.active, true);
+});
+
+test('stable: alternating hit/miss (flicker) never fires', () => {
+  const t = createTrigger({ type: 'gesture', gesture: 'Thumb_Up', holdMs: 300 }, ctx);
+  let fired = false;
+  for (let i = 0; i < 40; i++) fired ||= t.update(thumb(i % 2 === 0), i * 50).active;
+  assert.equal(fired, false);
+});
+
+test('stable: reports partial progress while holding', () => {
+  const t = createTrigger({ type: 'gesture', gesture: 'Thumb_Up', holdMs: 400 }, ctx);
+  t.update(thumb(true), 0);
+  const r = t.update(thumb(true), 200);
+  assert.equal(r.active, false);
+  assert.ok(r.progress > 0.4 && r.progress < 0.6, String(r.progress));
+});
+
+const cand = (id, priority, active, extra = {}) => ({ id, priority, active, progress: active ? 1 : 0, cooldownUntil: 0, ...extra });
+
+test('arbiter: higher priority (lower number) wins a tie', () => {
+  const a = new TriggerArbiter();
+  const r = a.decide([cand('noice', 4, true), cand('cinema', 2, true)], 1000);
+  assert.equal(r.fire, 'cinema');
+});
+
+test('arbiter: quiet period blocks a second fire within 1500 ms', () => {
+  const a = new TriggerArbiter();
+  assert.equal(a.decide([cand('cinema', 2, true)], 1000).fire, 'cinema');
+  assert.equal(a.decide([cand('cinema', 2, false), cand('noice', 4, false)], 1100).fire, null);
+  assert.equal(a.decide([cand('cinema', 2, false), cand('noice', 4, true)], 2000).fire, null, 'blocked: inside quiet period');
+  assert.equal(a.decide([cand('cinema', 2, false), cand('noice', 4, true)], 2600).fire, null, 'no late fire for a pose held through the quiet period');
+  assert.equal(a.decide([cand('cinema', 2, false), cand('noice', 4, false)], 2700).fire, null);
+  assert.equal(a.decide([cand('cinema', 2, false), cand('noice', 4, true)], 2800).fire, 'noice');
+});
+
+test('arbiter: fires only on the rising edge and respects cooldown', () => {
+  const a = new TriggerArbiter({ quietMs: 0 });
+  assert.equal(a.decide([cand('x', 1, true)], 0).fire, 'x');
+  assert.equal(a.decide([cand('x', 1, true)], 100).fire, null);
+  assert.equal(a.decide([cand('x', 1, false)], 200).fire, null);
+  assert.equal(a.decide([cand('x', 1, true, { cooldownUntil: 5000 })], 300).fire, null);
+});
+
+test('arbiter: progress reports partial holds, hidden during quiet period', () => {
+  const a = new TriggerArbiter();
+  let r = a.decide([cand('noice', 4, false, { progress: 0.5 })], 0);
+  assert.equal(r.progress.get('noice'), 0.5);
+  a.decide([cand('cinema', 2, true)], 100);
+  r = a.decide([cand('cinema', 2, true), cand('noice', 4, false, { progress: 0.5 })], 200);
+  assert.equal(r.progress.has('noice'), false);
 });

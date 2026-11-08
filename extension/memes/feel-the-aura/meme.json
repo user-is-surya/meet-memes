@@ -4,7 +4,12 @@
   "how": "Point both index fingers at your head and hold.",
   "hotkey": "Alt+Shift+6",
   "cooldownMs": 2500,
-  "trigger": { "type": "hands-on-head", "hands": 2, "holdMs": 500 },
+  "priority": 8,
+  "trigger": {
+    "type": "hands-on-head",
+    "hands": 2,
+    "holdMs": 500
+  },
   "render": {
     "type": "aura",
     "asset": "aura.gif",

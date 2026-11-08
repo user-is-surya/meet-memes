@@ -11,7 +11,7 @@ import { EngineClient } from './engine-client.js';
 import { AssetStore } from './assets.js';
 import { SnapListener } from './audio.js';
 import { Preview, toast } from './preview.js';
-import { createTrigger } from '../triggers/index.js';
+import { createTrigger, TriggerArbiter } from '../triggers/index.js';
 import { createEffect } from '../renderers/index.js';
 
 const RECENT_FACE_MS = 1500;
@@ -66,6 +66,8 @@ class App {
     this.audio = new SnapListener();
     this.preview = new Preview(() => { this.previewDismissed = true; this.preview.hide(); });
     this.triggerCtx = { audio: () => this.audio };
+    this.arbiter = new TriggerArbiter({ quietMs: 1500 });
+    this.charging = false;
     this.modes = new ModeController({
       getSettings: () => this.settings,
       save: (patch) => { this.settings = { ...this.settings, ...patch }; this.applySettings(); return saveSettings(patch); },
@@ -184,7 +186,9 @@ class App {
 
   maybeDetect(now) {
     if (this.detecting || !this.needsDetection || this.engine.status !== 'ready') return;
-    if (now - this.lastDetectAt < 1000 / this.settings.detectFps) return;
+    // Fast while hands are in view or a pose is charging; slow when nothing is happening.
+    const interval = this.det.hands.length || this.charging ? 33 : 125;
+    if (now - this.lastDetectAt < interval) return;
     this.detecting = true;
     this.lastDetectAt = now;
     const frame = this.frame;
@@ -208,17 +212,30 @@ class App {
       t: now,
     };
 
+    const cands = [];
     for (const m of this.enabledMemes) {
       m.effect.onDetect(this.det, this.frame);
       if (!m.trigger || !this.gesturesOn) continue;
-      const { active, info } = m.trigger.update(this.det, now);
-      if (active && !m.wasActive && now >= m.cooldownUntil) {
-        m.effect.fire(info, now);
+      const r = m.trigger.update(this.det, now);
+      cands.push({ id: m.def.id, priority: m.def.priority ?? 50, active: r.active, progress: r.progress, cooldownUntil: m.cooldownUntil, m, info: r.info });
+    }
+    const { fire, progress } = this.arbiter.decide(cands, now);
+    this.charging = progress.size > 0;
+    for (const c of cands) {
+      const { m } = c;
+      if (c.id === fire) {
+        m.effect.fire(c.info, now);
         this.lastFired = { id: m.def.name, at: now };
         m.cooldownUntil = now + (m.def.cooldownMs ?? 2500);
       }
-      m.effect.setHeld(active, now);
-      m.wasActive = active;
+      m.effect.setHeld(c.active, now);
+      const p = progress.get(c.id);
+      if (p !== undefined && !m.effect.isActive(now)) {
+        const at = (c.info && c.info.hand) || (this.det.face && this.det.face.nose) || { x: 0.5, y: 0.5 };
+        this.overlay.show(c.id, p, { x: at.x, y: Math.max(0.08, at.y - 0.12) });
+      } else {
+        this.overlay.hide(c.id);
+      }
     }
   }
 

@@ -4,7 +4,10 @@
   "how": "Snap your fingers (thumb + middle finger) where the camera can see your hand.",
   "hotkey": "Alt+Shift+1",
   "cooldownMs": 1500,
-  "trigger": { "type": "snap" },
+  "priority": 1,
+  "trigger": {
+    "type": "snap"
+  },
   "render": {
     "type": "thanos",
     "spreadMs": 1800,

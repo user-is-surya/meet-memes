@@ -135,22 +135,41 @@ const conditions = {
   },
 };
 
+// A pose counts as "held" when, walking back from the newest detection, at least 70% of
+// detections are hits (a few dropped frames don't reset it) for holdMs, and the newest
+// detection is a hit. `progress` (0..1) drives the charge ring.
+export function stable(test, { holdMs = 0, ratio = 0.7 } = {}) {
+  const samples = []; // { t, hit }
+  let info = null;
+  return {
+    update(det, now) {
+      const hit = test(det, now);
+      if (hit) info = hit;
+      samples.push({ t: now, hit: !!hit });
+      while (samples.length > 2 && now - samples[1].t > holdMs * 2 + 250) samples.shift();
+      if (!hit) return { active: false, info, progress: 0 };
+      if (holdMs <= 0) return { active: true, info, progress: 1 };
+      let hits = 0, total = 0, earliest = now;
+      for (let i = samples.length - 1; i >= 0; i--) {
+        total++;
+        if (samples[i].hit) hits++;
+        const r = hits / total;
+        if (r >= ratio) earliest = samples[i].t;
+        else if (r < 0.5) break;
+      }
+      const progress = Math.min(1, (now - earliest) / holdMs);
+      return { active: progress >= 1, info, progress };
+    },
+  };
+}
+
 function single(spec, ctx) {
   const make = conditions[spec.type];
   if (!make) {
     console.warn('[meet-memes] unknown trigger type', spec.type);
     return null;
   }
-  const test = make(spec, ctx);
-  const holdMs = spec.holdMs ?? 0;
-  let since = null, info = null;
-  return {
-    update(det, now) {
-      const hit = test(det, now);
-      if (hit) { if (since === null) since = now; info = hit; } else since = null;
-      return { active: since !== null && now - since >= holdMs, info };
-    },
-  };
+  return stable(make(spec, ctx), { holdMs: spec.holdMs ?? 0, ratio: spec.ratio ?? 0.7 });
 }
 
 // spec may be null (hotkey only), a single spec, or an array (any of them).
@@ -159,12 +178,42 @@ export function createTrigger(spec, ctx) {
   if (!specs.length) return null;
   return {
     update(det, now) {
-      let out = { active: false, info: null };
+      let out = { active: false, info: null, progress: 0 };
       for (const t of specs) {
         const r = t.update(det, now);
         if (r.active && !out.active) out = r;
+        else if (!out.active && r.progress > out.progress) out = { ...out, progress: r.progress, info: r.info };
       }
       return out;
     },
   };
+}
+
+// Decides which meme fires this detection: only on a pose's rising edge, outside its
+// cooldown and the global quiet period after any fire; ties go to the lower priority
+// number. A pose that went active while blocked must be released before it can fire.
+export class TriggerArbiter {
+  constructor({ quietMs = 1500 } = {}) {
+    this.quietMs = quietMs;
+    this.quietUntil = -Infinity;
+    this.was = new Map();
+  }
+
+  // candidates: [{ id, priority, active, progress, cooldownUntil }]
+  decide(candidates, now) {
+    const quiet = now < this.quietUntil;
+    let best = null;
+    for (const c of candidates) {
+      const rising = c.active && !this.was.get(c.id);
+      this.was.set(c.id, c.active);
+      if (!rising || quiet || now < (c.cooldownUntil || 0)) continue;
+      if (!best || (c.priority ?? 99) < (best.priority ?? 99)) best = c;
+    }
+    if (best) this.quietUntil = now + this.quietMs;
+    const progress = new Map();
+    if (!quiet && !best) {
+      for (const c of candidates) if (!c.active && c.progress > 0) progress.set(c.id, c.progress);
+    }
+    return { fire: best ? best.id : null, progress };
+  }
 }
