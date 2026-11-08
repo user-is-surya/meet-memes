@@ -3,7 +3,7 @@
   "description": "Hand on your chest: crash zoom, shaking camera, red flash and EMOTIONAL DAMAGE.",
   "origin": "Steven He’s “EMOTIONAL DAMAGE!” from his Asian-parent sketches.",
   "whatHappens": "Your video crash-zooms onto your face with a shaky handheld camera and a red flash, EMOTIONAL DAMAGE slams onto the screen, and everyone hears the shout.",
-  "how": "Press one flat hand on your chest, like you just took a hit, and hold for a moment.",
+  "how": "Press one flat hand on your chest, like you just took a hit, and hold it still for a moment.",
   "tips": [
     "One hand only: both hands at your chest is the broccoli plate.",
     "Keep the hand below your chin, in the middle of your chest."
@@ -18,7 +18,7 @@
   },
   "trigger": {
     "type": "hand-on-chest",
-    "holdMs": 350
+    "holdMs": 600
   },
   "render": {
     "type": "damage",

@@ -56,28 +56,26 @@ export class Compositor {
     if (ext) ext.loseContext(); else this.lost = true;
   }
 
-  // Compile every shader once on a tiny frame, so the first time an effect runs it
-  // doesn't stall the video while the GPU driver compiles.
-  warmup() {
-    if (this.mode !== 'gl') return;
-    const g = this.g;
-    const tiny = new OffscreenCanvas(4, 4);
-    tiny.getContext('2d').fillRect(0, 0, 4, 4);
+  // Run every shader once at the real frame size (and the copy into the output canvas),
+  // so the first time an effect fires the GPU driver doesn't stall the video. Nothing is
+  // sent: the caller doesn't mark the frame as used.
+  warmup(frame) {
+    if (this.mode !== 'gl' || !frame || !frame.width) return;
     const ps = new ParticleSystem(4);
     ps.spawn(1, (i, p) => { p.x = 0.5; p.y = 0.5; });
-    const prev = { w: g.w, h: g.h, frame: g.frame, now: g.now, mask: g.mask };
     try {
-      this.glCanvas.width = this.glCanvas.width || 4;
-      g.begin(tiny, { w: 4, h: 4, now: 0, mask: tiny });
+      const g = this.begin(frame, { now: 0, mask: null });
       g.drawFrame();
-      g.drawImage(tiny, 0, 0, 1, 1);
-      g.drawPerson();
+      g.drawImage(frame, 0, 0, 0.1, 0.1);
+      g.drawText('Aa', 0.5, 0.5, { size: 0.05 });
       for (const shape of ['soft', 'flake', 'spark']) g.particles(ps, { shape });
       for (const name of passNames()) { try { g.pass(name, { uniforms: {}, textures: {} }); } catch { /* ignore */ } }
+      this.end();
+      this.fxCtx.getImageData(0, 0, 1, 1); // force the GPU work to finish now
     } catch (err) {
-      console.warn('[meet-memes] shader warm-up failed', err);
+      console.warn('[meet-memes] warm-up failed', err);
     }
-    Object.assign(g, prev);
+    this.warm = true;
   }
 
   get quality() { return this.budget.quality; }

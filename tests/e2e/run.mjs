@@ -62,6 +62,9 @@ export async function open({ effect = 'blur', settings = null, harness = true, a
       }, null, { timeout: ms }).catch(() => {});
     },
     // Waits until person masks are flowing (needed by Thanos / aura / explosions).
+    async waitForFaces(n = 5, ms = 60000) {
+      await page.waitForFunction((k) => Number(document.getElementById('meet-memes-root')?.dataset.faces) >= k, n, { timeout: ms }).catch(() => {});
+    },
     async waitForMasks(n = 8, ms = 60000) {
       await page.waitForFunction((k) => Number(document.getElementById('meet-memes-root')?.dataset.masks) >= k, n, { timeout: ms }).catch(() => {});
     },

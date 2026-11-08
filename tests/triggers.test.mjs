@@ -74,8 +74,8 @@ test('snap without mic: pinch then middle finger into the palm', () => {
   const t = createTrigger({ type: 'snap' }, ctx);
   const open = hand({ x: 0.5, y: 0.6 });
   const middleTip = open.landmarks[12];
-  const pinch = hand({ x: 0.5, y: 0.6, fingers: { index: 'curl' }, thumbTip: { x: middleTip.x + 0.005, y: middleTip.y } });
-  const snapped = hand({ x: 0.5, y: 0.6, fingers: { index: 'curl', middle: 'curl' } });
+  const pinch = hand({ x: 0.5, y: 0.6, fingers: { index: 'curl', ring: 'curl', pinky: 'curl' }, thumbTip: { x: middleTip.x + 0.005, y: middleTip.y } });
+  const snapped = hand({ x: 0.5, y: 0.6, fingers: { index: 'curl', middle: 'curl', ring: 'curl', pinky: 'curl' } });
   assert.equal(t.update(det([pinch]), 0).active, false);
   assert.equal(t.update(det([pinch]), 60).active, false);
   assert.equal(t.update(det([snapped]), 130).active, true);
@@ -89,7 +89,7 @@ test('snap with mic: needs the sound after a pinch', () => {
   const t = createTrigger({ type: 'snap' }, { audio: () => audio });
   const open = hand({ x: 0.5, y: 0.6 });
   const tip = open.landmarks[12];
-  const pinch = hand({ x: 0.5, y: 0.6, thumbTip: { x: tip.x, y: tip.y } });
+  const pinch = hand({ x: 0.5, y: 0.6, fingers: { ring: 'curl', pinky: 'curl' }, thumbTip: { x: tip.x, y: tip.y } });
   assert.equal(t.update(det([pinch]), 0).active, false);
   assert.equal(t.update(det([open]), 80).active, false); // released but silent
   audio.lastSpikeAt = 100;
@@ -274,11 +274,13 @@ test('detectSweep: slow raises and downward moves are not flings', async () => {
 // ---- Emotional Damage: one flat hand on the chest ----
 const flat = (x, y, extra = {}) => hand({ x, y, s: 0.05, dir: { x: 0.2, y: -1 }, ...extra });
 
-test('Emotional Damage: one flat hand on the chest, held 350 ms', () => {
-  const t = createTrigger({ type: 'hand-on-chest', holdMs: 350 }, ctx);
-  assert.equal(t.update(det([flat(0.48, 0.82)]), 0).active, false);
-  assert.equal(t.update(det([flat(0.48, 0.82)]), 200).active, false);
-  assert.equal(t.update(det([flat(0.48, 0.82)]), 400).active, true);
+test('Emotional Damage: one flat hand held still on the chest for 600 ms', () => {
+  const t = createTrigger({ type: 'hand-on-chest', holdMs: 600 }, ctx);
+  let r;
+  for (let ms = 0; ms <= 400; ms += 50) r = t.update(det([flat(0.48, 0.82)]), ms);
+  assert.equal(r.active, false);
+  for (let ms = 450; ms <= 700; ms += 50) r = t.update(det([flat(0.48, 0.82)]), ms);
+  assert.equal(r.active, true);
 });
 
 test('Emotional Damage: hand on the chin, a fist, or two hands (plate pose) do not count', () => {
@@ -287,4 +289,50 @@ test('Emotional Damage: hand on the chin, a fist, or two hands (plate pose) do n
   assert.equal(t.update(det([hand({ x: 0.48, y: 0.82, fingers: fist })]), 10).active, false, 'fist');
   assert.equal(t.update(det([flat(0.42, 0.82), flat(0.58, 0.82, { handedness: 'Left' })]), 20).active, false, 'both hands');
   assert.equal(t.update(det([flat(0.95, 0.82)]), 30).active, false, 'off to the side');
+});
+
+// ---- Laser eyes: wide-eyed stare, no hands ----
+const stareFace = (on) => ({ ...FACE, blendshapes: on
+  ? { eyeWideLeft: 0.5, eyeWideRight: 0.5, browInnerUp: 0.6, browOuterUpLeft: 0.5, browOuterUpRight: 0.5 }
+  : { eyeWideLeft: 0.1, eyeWideRight: 0.1, browInnerUp: 0.1 } });
+
+test('Laser eyes: a wide-eyed stare held 900 ms fires', () => {
+  const t = createTrigger({ type: 'stare', holdMs: 900 }, ctx);
+  let r;
+  for (let ms = 0; ms <= 950; ms += 50) r = t.update(det([], stareFace(true)), ms);
+  assert.equal(r.active, true);
+});
+
+test('Laser eyes: a brief surprised look (400 ms) does not fire', () => {
+  const t = createTrigger({ type: 'stare', holdMs: 900 }, ctx);
+  let fired = false;
+  for (let ms = 0; ms <= 2000; ms += 50) fired ||= t.update(det([], stareFace(ms < 400)), ms).active;
+  assert.equal(fired, false);
+});
+
+test('Laser eyes: not while a hand is near the face', () => {
+  const t = createTrigger({ type: 'stare', holdMs: 0 }, ctx);
+  assert.equal(t.update(det([hand({ x: 0.5, y: 0.4 })], stareFace(true)), 0).active, false);
+  assert.equal(t.update(det([hand({ x: 0.95, y: 0.95 })], stareFace(true)), 10).active, true, 'a hand far away is fine');
+});
+
+test('Emotional Damage: a hand moving around the chest while talking does not count', () => {
+  const t = createTrigger({ type: 'hand-on-chest', holdMs: 600 }, ctx);
+  let fired = false;
+  for (let ms = 0; ms <= 2000; ms += 50) {
+    const x = 0.48 + Math.sin(ms / 120) * 0.05, y = 0.82 + Math.cos(ms / 150) * 0.04;
+    fired ||= t.update(det([flat(x, y)]), ms).active;
+  }
+  assert.equal(fired, false);
+});
+
+test('snap without mic: a talking pinch with ring and pinky out does not count', () => {
+  const t = createTrigger({ type: 'snap' }, ctx);
+  const open = hand({ x: 0.5, y: 0.6 });
+  const tip = open.landmarks[12];
+  const pinchOpenFingers = hand({ x: 0.5, y: 0.6, fingers: { index: 'curl' }, thumbTip: { x: tip.x + 0.005, y: tip.y } });
+  const after = hand({ x: 0.5, y: 0.6, fingers: { index: 'curl', middle: 'curl' } });
+  t.update(det([pinchOpenFingers]), 0);
+  t.update(det([pinchOpenFingers]), 60);
+  assert.equal(t.update(det([after]), 130).active, false);
 });

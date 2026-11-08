@@ -39,7 +39,7 @@ test('replay feeds recorded mic transients to the snap trigger', async () => {
   rec.start('gesture-thanos-snap', 16 / 9, { mic: true });
   const open = hand({ x: 0.5, y: 0.6 });
   const tip = open.landmarks[12];
-  const pinch = hand({ x: 0.5, y: 0.6, thumbTip: { x: tip.x, y: tip.y } });
+  const pinch = hand({ x: 0.5, y: 0.6, fingers: { ring: 'curl', pinky: 'curl' }, thumbTip: { x: tip.x, y: tip.y } });
   rec.push({ hands: [pinch], face: FACE }, 0);
   rec.push({ hands: [open], face: FACE }, 80, [100]);
   rec.push({ hands: [open], face: FACE }, 150);

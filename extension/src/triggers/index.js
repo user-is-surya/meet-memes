@@ -88,7 +88,10 @@ const conditions = {
         const st = state.get(h.handedness) || { pinchAt: -Infinity };
         state.set(h.handedness, st);
         const size = handSize(lm, det.aspect);
-        const pinch = dist(lm[L.THUMB_TIP], lm[L.MIDDLE_TIP], det.aspect) / size < pinchRatio;
+        // A snap pinches thumb + middle with the ring and pinky folded down; a talking
+        // pinch (OK sign, precision grip) usually leaves them out.
+        const folded = reach(lm, L.RING_TIP, det.aspect) < 1.45 && reach(lm, L.PINKY_TIP, det.aspect) < 1.45;
+        const pinch = folded && dist(lm[L.THUMB_TIP], lm[L.MIDDLE_TIP], det.aspect) / size < pinchRatio;
         if (audio && audio.running) {
           if (pinch) st.pinchAt = now;
           if (now - st.pinchAt < 700 && audio.spikeSince(st.pinchAt - 250) && now - audio.lastSpikeAt < 600) {
@@ -154,8 +157,11 @@ const conditions = {
 
   // Emotional Damage: exactly one open, flat hand pressed on the chest (below the face,
   // roughly under the chin, not out to the side).
-  'hand-on-chest'() {
-    return (det) => {
+  // The hand must also be held still (talking hands keep moving around the chest).
+  'hand-on-chest'(spec) {
+    const stillMs = spec.stillMs ?? 400, still = spec.stillness ?? 0.2;
+    const hist = [];
+    return (det, now) => {
       const face = det.face;
       const box = face ? face.box : { x: 0.4, y: 0.2, w: 0.2, h: 0.3 };
       const nose = face ? face.nose : { x: 0.5, y: 0.35 };
@@ -169,8 +175,32 @@ const conditions = {
         return Math.abs(p.x - nose.x) * det.aspect <= 0.9 * box.w * det.aspect;
       });
       const chestZone = det.hands.filter((h) => palm(h.landmarks).y > box.y + box.h * 1.2);
-      if (onChest.length !== 1 || chestZone.length !== 1) return null;
-      return { hand: palm(onChest[0].landmarks) };
+      if (onChest.length !== 1 || chestZone.length !== 1) { hist.length = 0; return null; }
+      const p = palm(onChest[0].landmarks);
+      hist.push({ t: now, x: p.x, y: p.y });
+      while (hist.length && now - hist[0].t > stillMs) hist.shift();
+      for (const q of hist) {
+        if (Math.hypot((q.x - p.x) * det.aspect, q.y - p.y) > still * box.h) return null;
+      }
+      return { hand: p };
+    };
+  },
+
+  // Laser eyes: a wide-eyed stare with raised brows, and no hand near the face.
+  stare(spec) {
+    const wide = spec.eyeWide ?? 0.35, inner = spec.browInnerUp ?? 0.45, outer = spec.browOuterUp ?? 0.35;
+    return (det) => {
+      const f = det.face, bs = f && f.blendshapes;
+      if (!bs) return null;
+      if ((bs.eyeWideLeft || 0) < wide || (bs.eyeWideRight || 0) < wide) return null;
+      if ((bs.browInnerUp || 0) < inner) return null;
+      if (((bs.browOuterUpLeft || 0) + (bs.browOuterUpRight || 0)) / 2 < outer) return null;
+      const b = f.box, cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      const near = det.hands.some((h) => {
+        const p = palm(h.landmarks);
+        return Math.abs(p.x - cx) < b.w * 1.2 && Math.abs(p.y - cy) < b.h * 1.2;
+      });
+      return near ? null : { hand: f.nose };
     };
   },
 

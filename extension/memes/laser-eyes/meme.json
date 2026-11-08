@@ -1,0 +1,28 @@
+{
+  "name": "Laser eyes",
+  "description": "Stare wide-eyed: red laser flares on your eyes, beams where you look.",
+  "origin": "The “laser eyes” / “red eyes” meme: glowing red lens flares on someone’s eyes when they mean business.",
+  "whatHappens": "Glowing red flares bloom on your eyes with long red streaks. Turn your head and laser beams fire that way, sparking at the edge of the screen, with a laser hum. It lasts as long as you hold the stare.",
+  "how": "Keep your hands away from your face, open your eyes wide and raise your eyebrows. Hold the stare for about a second.",
+  "tips": [
+    "A quick surprised look won’t trigger it; hold the stare.",
+    "Turn your head while it’s on to aim the beams."
+  ],
+  "hotkey": "Alt+Shift+8",
+  "cooldownMs": 2500,
+  "priority": 7,
+  "sound": "sound.ogg",
+  "trigger": {
+    "type": "stare",
+    "holdMs": 900
+  },
+  "render": {
+    "type": "laser",
+    "hold": true,
+    "minMs": 1500,
+    "lingerMs": 300,
+    "fadeMs": 300,
+    "durationMs": 2500,
+    "soundLoop": true
+  }
+}

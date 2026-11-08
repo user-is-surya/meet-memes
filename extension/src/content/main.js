@@ -116,7 +116,6 @@ class App {
 
     await this.loadMemes();
     this.applySettings();
-    setTimeout(() => this.compositor.warmup(), 1500);
   }
 
   async loadMemes() {
@@ -179,6 +178,7 @@ class App {
 
     const mirror = !!this.settings.mirror && isOn(this.settings);
     const frame = this.frame = this.compositor.frameFor(src, mirror);
+    if (!this.compositor.warm && this.root.dataset.memesLoaded) this.compositor.warmup(frame);
     this.maybeDetect(now);
 
     const active = [];
@@ -196,7 +196,10 @@ class App {
       g.drawFrame();
       for (const m of active) {
         try {
+          const r0 = performance.now();
           m.effect.renderGL(g, env);
+          const rt = performance.now() - r0;
+          if (rt > 50) this.root.dataset.slowRender = m.def.id + ':' + rt.toFixed(0) + '@' + Math.round(now);
         } catch (err) {
           console.warn('[meet-memes] render failed', m.def.id, err);
           m.effect.stop();
@@ -236,6 +239,7 @@ class App {
     this.lastDetAt = now;
     if (now - (this.detGapAt || 0) > 1000) { this.root.dataset.detGap = Math.round(this.detGapMax); this.detGapMax = 0; this.detGapAt = now; }
     if (res.mask) this.root.dataset.masks = String((Number(this.root.dataset.masks) || 0) + 1);
+    if (res.face) this.root.dataset.faces = String((Number(this.root.dataset.faces) || 0) + 1);
     if (res.face) { this.lastFace = res.face; this.lastFaceAt = now; }
     if (this.det.mask && this.det.mask !== res.mask) this.det.mask.close();
     this.det = {

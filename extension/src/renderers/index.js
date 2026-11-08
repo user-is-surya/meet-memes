@@ -9,6 +9,7 @@ import { ClipPopEffect } from './clip-pop.js';
 import { CinemaEffect } from './cinema.js';
 import { BroccoliEffect } from './broccoli.js';
 import { DamageEffect } from './damage.js';
+import { LaserEffect } from './laser.js';
 
 const TYPES = {
   overlay: OverlayEffect,
@@ -21,6 +22,7 @@ const TYPES = {
   cinema: CinemaEffect,
   broccoli: BroccoliEffect,
   damage: DamageEffect,
+  laser: LaserEffect,
 };
 
 export function createEffect(def, deps) {
