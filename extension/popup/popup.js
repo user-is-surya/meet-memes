@@ -1,5 +1,5 @@
 import {
-  getSettings, saveSettings, setMemeSetting, isMemeEnabled, loadBundledMemes, getCustomMemes,
+  getSettings, saveSettings, setMemeSetting, isMemeEnabled, loadBundledMemes, getCustomMemes, isOn,
 } from '../src/shared/settings.js';
 
 const $ = (id) => document.getElementById(id);
@@ -89,16 +89,17 @@ async function main() {
   $('version').textContent = 'v' + chrome.runtime.getManifest().version;
 
   const enabled = $('enabled');
-  enabled.checked = settings.enabled;
-  document.body.classList.toggle('off', !settings.enabled);
-  enabled.addEventListener('change', () => {
+  enabled.checked = isOn(settings);
+  document.body.classList.toggle('off', !enabled.checked);
+  enabled.addEventListener('change', async () => {
     document.body.classList.toggle('off', !enabled.checked);
-    saveSettings({ enabled: enabled.checked });
+    const s = await getSettings();
+    saveSettings({ activeMode: enabled.checked ? s.lastMode : 'off' });
   });
 
-  $('mode-' + settings.mode).checked = true;
-  for (const r of document.querySelectorAll('input[name=mode]')) {
-    r.addEventListener('change', () => saveSettings({ mode: r.value }));
+  $('audience-' + settings.audience).checked = true;
+  for (const r of document.querySelectorAll('input[name=audience]')) {
+    r.addEventListener('change', () => saveSettings({ audience: r.value }));
   }
   for (const key of ['showPreview', 'snapUsesMic', 'debug']) {
     $(key).checked = settings[key];

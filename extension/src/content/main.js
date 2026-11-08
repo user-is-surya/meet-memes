@@ -1,8 +1,9 @@
 // Content script entry (isolated world). Owns the meme list, runs detection,
 // fires triggers, and composes active effects into the fx canvas each frame.
 import {
-  getSettings, saveSettings, getCustomMemes, loadBundledMemes, applyOverrides, isMemeEnabled, onStorageChanged,
+  getSettings, saveSettings, getCustomMemes, loadBundledMemes, applyOverrides, isMemeEnabled, onStorageChanged, isOn,
 } from '../shared/settings.js';
+import { ModeController } from './modes.js';
 import { EngineClient } from './engine-client.js';
 import { AssetStore } from './assets.js';
 import { SnapListener } from './audio.js';
@@ -12,7 +13,6 @@ import { createEffect } from '../renderers/index.js';
 
 const RECENT_FACE_MS = 1500;
 const DETECT_WIDTH = 640;
-const PANIC_KEY = 'Alt+Shift+0';
 
 function ensureRoot() {
   let root = document.getElementById('meet-memes-root');
@@ -63,6 +63,12 @@ class App {
     this.audio = new SnapListener();
     this.preview = new Preview(() => { this.previewDismissed = true; this.preview.hide(); });
     this.triggerCtx = { audio: () => this.audio };
+    this.modes = new ModeController({
+      getSettings: () => this.settings,
+      save: (patch) => { this.settings = { ...this.settings, ...patch }; this.applySettings(); return saveSettings(patch); },
+      toast: (t) => toast(t),
+      onHotkey: (combo) => this.fireHotkey(combo),
+    });
 
     this.src.addEventListener('meet-memes-frame', () => this.onFrame());
     window.addEventListener('keydown', (e) => this.onKey(e), true);
@@ -94,17 +100,20 @@ class App {
 
   applySettings() {
     const s = this.settings;
-    this.root.dataset.mode = s.enabled ? s.mode : 'off';
-    this.enabledMemes = s.enabled ? this.memes.filter((m) => isMemeEnabled(s, m.def)) : [];
-    this.needsDetection = this.enabledMemes.some((m) => m.trigger);
+    const on = isOn(s);
+    this.root.dataset.mode = on ? s.audience : 'off';
+    this.root.dataset.mirror = s.mirror ? '1' : '0';
+    this.enabledMemes = on ? this.memes.filter((m) => isMemeEnabled(s, m.def)) : [];
+    this.gesturesOn = s.activeMode === 'meme';
+    this.needsDetection = this.gesturesOn && this.enabledMemes.some((m) => m.trigger);
     this.needsMask = this.enabledMemes.some((m) => m.effect.needsMask);
-    this.wantMic = s.snapUsesMic && this.enabledMemes.some((m) => usesSnap(m.def.trigger));
+    this.wantMic = this.gesturesOn && s.snapUsesMic && this.enabledMemes.some((m) => usesSnap(m.def.trigger));
     if (!this.wantMic) this.audio.stop();
-    if (!s.enabled) for (const m of this.memes) m.effect.stop();
+    if (!on) for (const m of this.memes) m.effect.stop();
 
-    const showPreview = s.enabled && (s.mode === 'local' || s.showPreview || s.debug) && !this.previewDismissed;
+    const showPreview = on && (s.audience === 'local' || s.showPreview || s.debug) && !this.previewDismissed;
     if (showPreview) {
-      this.preview.show(s.mode === 'local' ? 'Local mode: only you see these effects.' : 'This is exactly what everyone in the call sees.');
+      this.preview.show(s.audience === 'local' ? 'Local mode: only you see these effects.' : 'This is exactly what everyone in the call sees.');
     } else {
       this.preview.hide();
     }
@@ -177,7 +186,7 @@ class App {
 
     for (const m of this.enabledMemes) {
       m.effect.onDetect(this.det, this.src);
-      if (!m.trigger) continue;
+      if (!m.trigger || !this.gesturesOn) continue;
       const { active, info } = m.trigger.update(this.det, now);
       if (active && !m.wasActive && now >= m.cooldownUntil) {
         m.effect.fire(info, now);
@@ -190,33 +199,29 @@ class App {
   }
 
   onKey(e) {
-    if (!e.altKey || !e.shiftKey || e.ctrlKey || e.metaKey) return;
-    const match = /^Digit(\d)$/.exec(e.code);
-    if (!match) return;
-    const combo = 'Alt+Shift+' + match[1];
-
-    if (combo === PANIC_KEY) {
+    if (this.modes.handleKey(e)) {
       e.preventDefault();
       e.stopPropagation();
-      const enabled = !this.settings.enabled;
-      saveSettings({ enabled });
-      toast(enabled ? 'Meet Memes on' : 'Meet Memes off: your camera is untouched');
-      return;
     }
+  }
+
+  fireHotkey(combo) {
+    if (!isOn(this.settings)) return false;
     const meme = this.enabledMemes.find((m) => m.def.hotkey === combo);
-    if (!meme) return;
-    e.preventDefault();
-    e.stopPropagation();
+    if (!meme) return false;
     meme.effect.fire({ hand: { x: 0.5, y: 0.6 } }, performance.now(), { hotkey: true });
     this.lastFired = { id: meme.def.name + ' (hotkey)', at: performance.now() };
+    return true;
   }
 
   // Snapshot for the popup's status panel.
   status() {
     const now = performance.now();
     return {
-      enabled: this.settings.enabled,
-      mode: this.settings.mode,
+      enabled: isOn(this.settings),
+      mode: this.settings.activeMode,
+      audience: this.settings.audience,
+      mirror: this.settings.mirror,
       cameraLive: now - (this.lastFrameAt || -Infinity) < 2000,
       path: this.root.dataset.path || 'none',
       frameSize: `${this.src.width}x${this.src.height}`,

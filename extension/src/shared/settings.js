@@ -3,9 +3,17 @@
 // - chrome.storage.local 'customMemes'  memes the user added (definitions only)
 // - chrome.storage.local 'asset:<id>'   uploaded image bytes ({ mime, name, data: base64 })
 
+export const SETTINGS_VERSION = 2;
+export const MODES = ['off', 'meme', 'draw', 'spell'];
+
 export const DEFAULT_SETTINGS = {
-  enabled: true,
-  mode: 'everyone', // 'everyone' = effects go out to the call, 'local' = only you see them in the preview
+  settingsVersion: SETTINGS_VERSION,
+  activeMode: 'meme', // off | meme | draw | spell
+  lastMode: 'meme', // the mode Alt+Shift+0 returns to
+  audience: 'everyone', // 'everyone' = effects go out to the call, 'local' = only you see them in the preview
+  mirror: false, // others see you flipped, like your selfie view
+  soundVolume: 0.7,
+  hearSoundsLocally: false,
   showPreview: false,
   debug: false,
   snapUsesMic: true,
@@ -13,9 +21,27 @@ export const DEFAULT_SETTINGS = {
   memes: {}, // per meme id: { enabled?: boolean, asset?: '<assetId>' }
 };
 
+// Upgrades stored settings from any earlier version. Pure; safe to call repeatedly.
+export function migrateSettings(raw) {
+  const src = { ...(raw || {}) };
+  if ((src.settingsVersion || 1) < 2) {
+    if (src.mode === 'local' || src.mode === 'everyone') src.audience = src.mode;
+    src.activeMode = src.enabled === false ? 'off' : 'meme';
+    src.lastMode = 'meme';
+    delete src.mode;
+    delete src.enabled;
+  }
+  const out = { ...DEFAULT_SETTINGS, ...src, settingsVersion: SETTINGS_VERSION, memes: { ...src.memes } };
+  if (!MODES.includes(out.activeMode)) out.activeMode = 'meme';
+  if (!MODES.includes(out.lastMode) || out.lastMode === 'off') out.lastMode = 'meme';
+  return out;
+}
+
+export const isOn = (s) => s.activeMode !== 'off';
+
 export async function getSettings() {
   const { settings } = await chrome.storage.sync.get('settings');
-  return { ...DEFAULT_SETTINGS, ...settings, memes: { ...(settings && settings.memes) } };
+  return migrateSettings(settings);
 }
 
 export async function saveSettings(patch) {
