@@ -4,6 +4,7 @@ import {
   getSettings, saveSettings, getCustomMemes, loadBundledMemes, applyOverrides, isMemeEnabled, onStorageChanged, isOn,
 } from '../shared/settings.js';
 import { ModeController } from './modes.js';
+import { Pill } from './pill.js';
 import { EngineClient } from './engine-client.js';
 import { AssetStore } from './assets.js';
 import { SnapListener } from './audio.js';
@@ -75,6 +76,14 @@ class App {
     chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
       if (msg && msg.type === 'status') reply(this.status());
     });
+    this.pill = new Pill({
+      getState: () => this.settings,
+      onMode: (mode) => this.modes.set(mode),
+      onMirror: () => this.modes.toggleMirror(),
+      onGuide: () => chrome.runtime.sendMessage({ type: 'open-guide' }).catch(() => {}),
+    });
+    const mountPill = () => this.pill.mount().catch((err) => console.warn('[meet-memes] pill failed', err));
+    if (document.body) mountPill(); else document.addEventListener('DOMContentLoaded', mountPill, { once: true });
     onStorageChanged(async () => {
       this.settings = await getSettings();
       await this.loadMemes();
@@ -103,6 +112,8 @@ class App {
     const on = isOn(s);
     this.root.dataset.mode = on ? s.audience : 'off';
     this.root.dataset.mirror = s.mirror ? '1' : '0';
+    if (this.pill) this.pill.update();
+    if (this.pill) this.pill.update();
     this.enabledMemes = on ? this.memes.filter((m) => isMemeEnabled(s, m.def)) : [];
     this.gesturesOn = s.activeMode === 'meme';
     this.needsDetection = this.gesturesOn && this.enabledMemes.some((m) => m.trigger);

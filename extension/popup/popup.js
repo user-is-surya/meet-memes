@@ -94,8 +94,27 @@ async function main() {
   enabled.addEventListener('change', async () => {
     document.body.classList.toggle('off', !enabled.checked);
     const s = await getSettings();
-    saveSettings({ activeMode: enabled.checked ? s.lastMode : 'off' });
+    const mode = enabled.checked ? s.lastMode : 'off';
+    $('activeMode-' + mode).checked = true;
+    saveSettings({ activeMode: mode });
   });
+
+  $('activeMode-' + settings.activeMode).checked = true;
+  for (const r of document.querySelectorAll('input[name=activeMode]')) {
+    r.addEventListener('change', () => {
+      const patch = r.value === 'off' ? { activeMode: 'off' } : { activeMode: r.value, lastMode: r.value };
+      enabled.checked = r.value !== 'off';
+      document.body.classList.toggle('off', r.value === 'off');
+      saveSettings(patch);
+    });
+  }
+  for (const key of ['mirror', 'hearSoundsLocally']) {
+    $(key).checked = !!settings[key];
+    $(key).addEventListener('change', () => saveSettings({ [key]: $(key).checked }));
+  }
+  $('soundVolume').value = settings.soundVolume;
+  $('soundVolume').addEventListener('change', () => saveSettings({ soundVolume: Number($('soundVolume').value) }));
+  $('guide').addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('guide/guide.html') }));
 
   $('audience-' + settings.audience).checked = true;
   for (const r of document.querySelectorAll('input[name=audience]')) {

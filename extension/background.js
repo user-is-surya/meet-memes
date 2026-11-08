@@ -49,6 +49,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'update-check') checkForUpdate();
 });
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg && msg.type === 'open-guide') {
+    chrome.tabs.create({ url: chrome.runtime.getURL('guide/guide.html' + (msg.hash || '')) });
+    return false;
+  }
   if (msg && msg.type === 'check-update') {
     checkForUpdate().then(sendResponse);
     return true;
