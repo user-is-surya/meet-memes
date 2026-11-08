@@ -1,7 +1,13 @@
 {
   "name": "Absolute Cinema",
   "description": "Your face in the centre of the Absolute Cinema poster.",
-  "how": "Raise both open hands up beside your head and hold.",
+  "origin": "Martin Scorsese with both hands raised, captioned “Absolute Cinema”. Used when something is a masterpiece.",
+  "whatHappens": "Your video becomes the poster: black-and-white, a dramatic vignette and film grain, a slow push-in, and ABSOLUTE CINEMA in big white letters. It stays while you hold the pose.",
+  "how": "Raise both open hands beside your head, palms to the camera, fingers spread. Hold for half a second.",
+  "tips": [
+    "Hands beside your head, not in front of your face.",
+    "Spread your fingers like in the poster."
+  ],
   "hotkey": "Alt+Shift+2",
   "cooldownMs": 2500,
   "priority": 2,

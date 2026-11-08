@@ -46,3 +46,31 @@ test('replay feeds recorded mic transients to the snap trigger', async () => {
   const { fires } = replay(rec.stop(), defs);
   assert.deepEqual(fires.map((f) => f.id), ['thanos-snap']);
 });
+
+test('mirrored traces (recorded in Practice) replay in camera space', async () => {
+  const defs = await loadBundledDefs();
+  const tr = synthetic(2);
+  // Mirror every x and swap handedness, as the Practice tab records them.
+  for (const f of tr.frames) {
+    for (const h of f.hands) {
+      h.handedness = h.handedness === 'Left' ? 'Right' : 'Left';
+      for (const p of h.landmarks) p.x = Math.round((1 - p.x) * 1e4) / 1e4;
+    }
+    if (f.face) f.face = { ...f.face, box: { ...f.face.box, x: 1 - f.face.box.x - f.face.box.w }, nose: { ...f.face.nose, x: 1 - f.face.nose.x } };
+  }
+  tr.mirrored = true;
+  const { fires } = replay(tr, defs);
+  assert.equal(fires.length, 2);
+});
+
+test('unmirror restores camera-space coordinates', async () => {
+  const { unmirrorFrame } = await import('./replay.mjs');
+  const f = { hands: [{ handedness: 'Left', landmarks: [{ x: 0.2, y: 0.5 }], gesture: { name: 'None', score: 0 } }],
+    face: { box: { x: 0.1, y: 0.2, w: 0.3, h: 0.3 }, nose: { x: 0.25, y: 0.3 }, blendshapes: { eyeBlinkLeft: 0.9 } } };
+  const u = unmirrorFrame(f);
+  assert.equal(u.hands[0].handedness, 'Right');
+  assert.ok(Math.abs(u.hands[0].landmarks[0].x - 0.8) < 1e-9);
+  assert.ok(Math.abs(u.face.box.x - 0.6) < 1e-9);
+  assert.ok(Math.abs(u.face.nose.x - 0.75) < 1e-9);
+  assert.equal(u.face.blendshapes.eyeBlinkRight, 0.9, 'left/right blendshapes swap too');
+});

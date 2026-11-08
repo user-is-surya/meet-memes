@@ -1,7 +1,12 @@
 {
   "name": "Michael Scott: No, God, please no",
   "description": "Full-screen Michael Scott despair.",
-  "how": "Cover your face with both hands and hold.",
+  "origin": "The Office: Michael Scott’s “No, God! Please, no!”",
+  "whatHappens": "The clip takes over your video, with sound. Lower your hands to end it early.",
+  "how": "Cover your face with both hands and hold for a moment.",
+  "tips": [
+    "Both palms over your face; one hand isn’t enough."
+  ],
   "hotkey": "Alt+Shift+4",
   "cooldownMs": 4000,
   "priority": 6,

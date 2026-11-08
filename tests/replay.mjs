@@ -14,6 +14,25 @@ export async function loadBundledDefs() {
 
 const RECENT_FACE_MS = 1500;
 
+const flipX = (p) => (p ? { ...p, x: 1 - p.x } : p);
+const swapLR = (name) => name.replace(/Left|Right/, (m) => (m === 'Left' ? 'Right' : 'Left'));
+
+// Practice records in selfie (mirrored) view; Meet's default is camera view. Convert back.
+export function unmirrorFrame(f) {
+  return {
+    ...f,
+    hands: f.hands.map((h) => ({ ...h, handedness: swapLR(h.handedness), landmarks: h.landmarks.map(flipX) })),
+    face: f.face && {
+      ...f.face,
+      box: { ...f.face.box, x: 1 - f.face.box.x - f.face.box.w },
+      nose: flipX(f.face.nose),
+      blendshapes: Object.fromEntries(Object.entries(f.face.blendshapes || {}).map(([k, v]) => [swapLR(k), v])),
+      ...(f.face.eyes ? { eyes: { left: flipX(f.face.eyes.right), right: flipX(f.face.eyes.left) } } : {}),
+      ...(f.face.pose ? { pose: { ...f.face.pose, yaw: -f.face.pose.yaw, roll: -(f.face.pose.roll || 0) } } : {}),
+    },
+  };
+}
+
 export function replay(trace, defs, { quietMs = 1500 } = {}) {
   const transients = [...(trace.transients || [])].sort((a, b) => a - b);
   const audio = {
@@ -27,7 +46,8 @@ export function replay(trace, defs, { quietMs = 1500 } = {}) {
   const fires = [];
   let lastFace = null, lastFaceAt = -Infinity, ti = 0;
 
-  for (const f of trace.frames) {
+  for (const raw of trace.frames) {
+    const f = trace.mirrored ? unmirrorFrame(raw) : raw;
     const now = f.t;
     while (ti < transients.length && transients[ti] <= now) audio.lastSpikeAt = transients[ti++];
     if (f.face) { lastFace = f.face; lastFaceAt = now; }

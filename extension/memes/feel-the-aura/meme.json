@@ -1,7 +1,12 @@
 {
   "name": "Feel the aura",
   "description": "A glowing aura surrounds you while you point at your head.",
-  "how": "Point both index fingers at your head and hold.",
+  "origin": "The “+1000 aura” meme: a moment of pure, unbothered confidence.",
+  "whatHappens": "A glowing purple aura hugs your outline, with rising wisps and “+1000 AURA”.",
+  "how": "Point both index fingers at your head and hold for half a second.",
+  "tips": [
+    "Only index fingers out; open hands don’t count."
+  ],
   "hotkey": "Alt+Shift+6",
   "cooldownMs": 2500,
   "priority": 8,

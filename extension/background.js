@@ -40,7 +40,12 @@ async function checkForUpdate() {
   }
 }
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
+  const now = chrome.runtime.getManifest().version.split('.');
+  const prev = (details.previousVersion || '').split('.');
+  const minorBump = details.reason === 'update' && (prev[0] !== now[0] || prev[1] !== now[1]);
+  if (details.reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('guide/guide.html') });
+  else if (minorBump) chrome.tabs.create({ url: chrome.runtime.getURL('guide/guide.html#whats-new') });
   chrome.alarms.create('update-check', { periodInMinutes: CHECK_EVERY_MIN });
   checkForUpdate();
 });

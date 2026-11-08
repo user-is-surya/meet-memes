@@ -1,7 +1,12 @@
 {
   "name": "Fanum broccoli throw",
   "description": "Throw and broccoli flies at the camera, with Fanum alongside.",
-  "how": "Make a fist and do a quick throwing motion.",
+  "origin": "Streamer Fanum is handed a plate of broccoli and flings it back over his shoulder. The popular edit adds a huge explosion behind him.",
+  "whatHappens": "A plate of broccoli appears on your hands. Fling it over your shoulder: it flies away behind you, and a massive explosion goes off behind you while you sit there, calm.",
+  "how": "Hold both hands palms-up at chest height, like you’re holding a plate. When the plate appears, fling one hand up and back over your shoulder.",
+  "tips": [
+    "The fling only counts once the plate has appeared, so waving around never triggers it."
+  ],
   "hotkey": "Alt+Shift+5",
   "cooldownMs": 3000,
   "priority": 3,

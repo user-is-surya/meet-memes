@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meet Memes Guide</title>
+  <link rel="icon" href="../icons/icon48.png">
+  <link rel="stylesheet" href="guide.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><img src="../icons/icon48.png" alt=""><span>Meet Memes</span><span class="ver" id="version"></span></div>
+    <nav>
+      <a href="#start">Start</a>
+      <a href="#memes">Memes</a>
+      <a href="#draw">Draw</a>
+      <a href="#spell">Spells</a>
+      <a href="#utilities">Utilities</a>
+      <a href="#practice" class="cta">Practice</a>
+      <a href="#troubleshooting">Help</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="whats-new" hidden>
+      <div class="banner">
+        <h2>What’s new in <span id="whats-new-version"></span></h2>
+        <ul id="whats-new-list"></ul>
+      </div>
+    </section>
+
+    <section id="start">
+      <h1>Memes for your Google Meet camera</h1>
+      <p class="lead">Do a gesture on camera and a meme plays in your video. Everyone in the call sees it, because it’s part of the video you send. It works with Meet’s background blur and virtual backgrounds.</p>
+      <div class="grid three">
+        <div class="tile"><div class="icon">👀</div><h3>What others see</h3><p>Your video with the meme in it, and meme sounds mixed into your mic. Nothing is sent while your camera or mic is off in Meet.</p></div>
+        <div class="tile"><div class="icon">🙈</div><h3>What only you see</h3><p>The floating 🎭 button, small messages, and the <b>charge ring</b> that fills as a gesture is recognised. None of these are in your video.</p></div>
+        <div class="tile"><div class="icon">🛑</div><h3>Panic button</h3><p>Press <kbd>Alt+Shift+0</kbd> any time to turn everything off instantly. Your camera goes back to normal. Press it again to turn things back on.</p></div>
+      </div>
+      <h2>Modes</h2>
+      <p>Only one mode is on at a time. Switch from the 🎭 button on the Meet page, from the toolbar popup, or with the keyboard.</p>
+      <table class="keys">
+        <tr><td>🎭 Meme mode</td><td><kbd>Alt+Shift+M</kbd></td><td>Gestures trigger memes (below).</td></tr>
+        <tr><td>✏️ Draw mode</td><td><kbd>Alt+Shift+D</kbd></td><td>Draw in the air for everyone to see. <span class="soon">coming soon</span></td></tr>
+        <tr><td>✨ Spell mode</td><td><kbd>Alt+Shift+S</kbd></td><td>Doctor Strange, Wanda and Doctor Doom style magic. <span class="soon">coming soon</span></td></tr>
+        <tr><td>⏻ Off</td><td><kbd>Alt+Shift+0</kbd></td><td>Camera untouched.</td></tr>
+        <tr><td>🪞 Mirror</td><td><kbd>Alt+Shift+R</kbd></td><td>Others see you flipped, like your selfie view. Works in any mode.</td></tr>
+      </table>
+      <p class="muted">Every meme also has its own hotkey (shown on its card) that works in any mode except Off, without a gesture.</p>
+    </section>
+
+    <section id="memes">
+      <h1>Meme mode</h1>
+      <p class="lead">Each meme has its own gesture. Gestures need to be held clearly for a moment, so ordinary movement in a meeting doesn’t set them off. Watch the charge ring: when it fills, the meme plays.</p>
+      <div class="cards" id="meme-cards"></div>
+    </section>
+
+    <section id="draw">
+      <h1>✏️ Draw mode <span class="soon">coming soon</span></h1>
+      <p>Draw in the air with your finger and everyone sees the strokes in your video: glowing neon, laser, fire trails, sparkles and more. Your video is mirrored while you draw, so your writing reads the right way round for everyone.</p>
+    </section>
+
+    <section id="spell">
+      <h1>✨ Spell mode <span class="soon">coming soon</span></h1>
+      <p>Cast Doctor Strange, Wanda and Doctor Doom style spells with five simple moves: shields, portals, blasts, time and reality spells, and masks.</p>
+    </section>
+
+    <section id="utilities">
+      <h1>Utilities</h1>
+      <div class="grid two">
+        <div class="tile"><div class="icon">🪞</div><h3>Mirror my video</h3><p>Others see the same flipped view you see in your self-view. Meme text is always drawn the right way round. Text behind you (posters, shirt logos) will look reversed to others; that’s unavoidable. Toggle with <kbd>Alt+Shift+R</kbd>, the 🪞 button or the popup.</p></div>
+        <div class="tile"><div class="icon">📶</div><h3>Bad connection <span class="soon">coming soon</span></h3><p>Fake a choppy, freezing connection (video, audio or both) when you need an excuse.</p></div>
+      </div>
+    </section>
+
+    <section id="practice">
+      <h1>Practice</h1>
+      <p class="lead">Rehearse gestures with your own camera. Nothing here is sent anywhere.</p>
+      <div class="practice">
+        <div class="stage" id="practice-stage">
+          <video id="practice-video" playsinline muted></video>
+          <canvas id="practice-view"></canvas>
+          <canvas id="practice-overlay"></canvas>
+          <div class="stage-empty" id="practice-empty">Camera is off</div>
+        </div>
+        <div class="controls">
+          <button class="primary" id="practice-start">📷 Start camera</button>
+          <div id="practice-status" class="status" data-state="idle">Not started</div>
+          <label class="field">Gesture to practise
+            <select id="practice-meme"></select>
+          </label>
+          <div class="meter"><div class="fill" id="practice-meter"></div></div>
+          <div class="hint" id="practice-hint"></div>
+          <div class="row">
+            <button id="practice-try">▶ Try the effect</button>
+            <label class="check"><input type="checkbox" id="practice-mic" checked> Use mic</label>
+          </div>
+          <details class="record">
+            <summary>🎙 Help tune the gestures (record a trace)</summary>
+            <p>A trace is what the gesture detector saw: hand and face positions, no video or sound. Send the files to the developer (or put them in <code>tests/fixtures/</code>) so gestures can be tuned to real hands.</p>
+            <div class="row wrap">
+              <button id="record-gesture">⏺ Record: do this gesture 5 times</button>
+              <button id="record-normal">⏺ Record: act normal for 2 minutes</button>
+              <button id="record-stop" disabled>⏹ Stop & save</button>
+            </div>
+            <div class="rec-status" id="record-status"></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="troubleshooting">
+      <h1>Troubleshooting</h1>
+      <details><summary>Others can’t see my memes</summary>
+        <p>Open the toolbar popup during the call. “Effects path: after Meet effects ✓” means memes go out with your video. If it says <i>fallback</i>, memes still work but Meet’s blur may soften them. Also check that the mode isn’t Off and “Who sees the effects” is set to <i>Everyone</i>.</p></details>
+      <details><summary>Nothing works after installing or updating</summary>
+        <p>Refresh the Meet tab. The extension has to load before Meet turns on your camera.</p></details>
+      <details><summary>A meme won’t fire</summary>
+        <p>Use Practice above and watch the meter. Make sure your hands and face are well lit and fully in frame. Hold the pose until the charge ring fills. Each meme’s card explains common mistakes. The hotkey always works as a fallback.</p></details>
+      <details><summary>A meme fires when I don’t want it to</summary>
+        <p>Turn that meme off in the popup, or switch to Off with <kbd>Alt+Shift+0</kbd>. Recording a “normal” trace in Practice helps the developer fix it for good.</p></details>
+      <details><summary>Effects are slow or choppy</summary>
+        <p>Effects reduce their detail automatically on slower computers. Closing other heavy tabs helps. Your internet speed doesn’t affect the animations, only how sharp your video looks to others.</p></details>
+      <details><summary>Checklist before a big call</summary>
+        <ol><li>Join a test call with a second device.</li><li>Fire each meme with its hotkey and check the other device sees it and hears the sound.</li><li>Try each gesture once with Practice.</li></ol></details>
+    </section>
+  </main>
+
+  <template id="card-template">
+    <article class="meme-card">
+      <header><h3 class="name"></h3><kbd class="hotkey"></kbd></header>
+      <dl>
+        <dt>What it is</dt><dd data-part="origin"></dd>
+        <dt>What happens</dt><dd data-part="what-happens"></dd>
+        <dt>How to trigger</dt><dd data-part="how"></dd>
+      </dl>
+      <ul class="tips"></ul>
+      <footer><button class="practise">Practise this</button></footer>
+    </article>
+  </template>
+
+  <script type="module" src="guide.js"></script>
+</body>
+</html>

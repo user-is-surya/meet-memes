@@ -1,7 +1,13 @@
 {
   "name": "Thanos snap",
   "description": "Snap your fingers and turn to dust. Snap again to come back.",
-  "how": "Snap your fingers (thumb + middle finger) where the camera can see your hand.",
+  "origin": "Avengers: Infinity War (2018). Thanos snaps his fingers and half of all life turns to dust.",
+  "whatHappens": "A snap, a beat of silence, then you turn ash-grey and crumble into dust that drifts away, leaving your empty room behind. Snap again and you re-form in a warm golden shimmer. You also come back by yourself after 20 seconds.",
+  "how": "Snap your fingers (thumb and middle finger) where the camera can see your hand. The mic listens for the snap to confirm it.",
+  "tips": [
+    "Keep the snapping hand in view, around chest height.",
+    "No mic? A clear pinch-and-release of thumb and middle finger still works."
+  ],
   "hotkey": "Alt+Shift+1",
   "cooldownMs": 1500,
   "priority": 1,

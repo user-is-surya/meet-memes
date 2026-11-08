@@ -1,7 +1,12 @@
 {
   "name": "Noice",
   "description": "Thumbs up and the Noice GIF pops up.",
-  "how": "Give a thumbs up to the camera.",
+  "origin": "Michael Rosen’s “*click* … noice” clip.",
+  "whatHappens": "The Noice clip pops up in the corner with its sound, and your video punch-zooms on your face right as he says “noice”.",
+  "how": "Hold a thumbs up next to your face and click your tongue. Without a mic, hold the thumbs up next to your face for about a second.",
+  "tips": [
+    "A thumbs up at chest height won’t trigger it, so ordinary thumbs-ups in a meeting stay safe."
+  ],
   "hotkey": "Alt+Shift+3",
   "cooldownMs": 3000,
   "priority": 4,

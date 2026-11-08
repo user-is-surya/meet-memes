@@ -52,6 +52,9 @@ for (const id of index.memes) {
   try { def = JSON.parse(await readFile(file, 'utf8')); } catch (err) { errors.push(`memes/${id}/meme.json: ${err.message}`); continue; }
   const where = `memes/${id}`;
   if (!def.name) errors.push(`${where}: missing "name"`);
+  for (const key of ['origin', 'whatHappens', 'how']) {
+    if (!def[key]) errors.push(`${where}: missing "${key}" (shown in the guide)`);
+  }
   for (const t of [].concat(def.trigger || [])) {
     if (!TRIGGERS.includes(t.type)) errors.push(`${where}: unknown trigger type "${t.type}"`);
     if (t.type === 'gesture' && !GESTURES.includes(t.gesture)) errors.push(`${where}: unknown gesture "${t.gesture}" (use one of ${GESTURES.join(', ')})`);
