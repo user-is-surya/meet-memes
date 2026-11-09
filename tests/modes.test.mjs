@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { keyAction, modePatch, panicPatch, MODE_LABELS } from '../extension/src/content/modes.js';
+import { keyAction, modePatch, panicPatch, MODE_LABELS, COMING_SOON } from '../extension/src/content/modes.js';
 
 const key = (code, mods = {}) => ({ code, altKey: true, shiftKey: true, ctrlKey: false, metaKey: false, ...mods });
 
@@ -11,6 +11,16 @@ test('Alt+Shift+M/D/S pick modes, R toggles mirror, 0 is panic', () => {
   assert.deepEqual(keyAction(key('KeyR')), { mirror: true });
   assert.deepEqual(keyAction(key('Digit0')), { panic: true });
   assert.deepEqual(keyAction(key('Digit3')), { hotkey: 'Alt+Shift+3' });
+});
+
+test('Alt+Shift+B toggles bad connection; Z and C are the draw tools', () => {
+  assert.deepEqual(keyAction(key('KeyB')), { badconn: true });
+  assert.deepEqual(keyAction(key('KeyZ')), { tool: 'undo' });
+  assert.deepEqual(keyAction(key('KeyC')), { tool: 'clear' });
+});
+
+test('no mode is marked coming soon any more', () => {
+  assert.equal(COMING_SOON.size, 0);
 });
 
 test('other modifier combos are ignored', () => {

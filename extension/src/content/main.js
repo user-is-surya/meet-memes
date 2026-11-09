@@ -14,6 +14,7 @@ import { SnapListener } from './audio.js';
 import { Preview, toast } from './preview.js';
 import { createTrigger, TriggerArbiter } from '../triggers/index.js';
 import { createEffect } from '../renderers/index.js';
+import { BadConnection } from './bad-connection.js';
 
 // Keep the last few warnings/errors for "Copy diagnostics" in the popup.
 const LOG = [];
@@ -86,11 +87,22 @@ class App {
     this.triggerCtx = { audio: () => this.audio };
     this.arbiter = new TriggerArbiter({ quietMs: 1500 });
     this.charging = false;
+    this.badConn = new BadConnection({
+      getSettings: () => this.settings,
+      post: (m) => window.postMessage(m, '*'),
+      toast: (t) => toast(t, 3500),
+    });
+    let badWas = false;
+    setInterval(() => {
+      this.badConn.tick();
+      if (badWas !== this.badConn.active) { badWas = this.badConn.active; if (this.pill) this.pill.update(); }
+    }, 250);
     this.modes = new ModeController({
       getSettings: () => this.settings,
       save: (patch) => { this.settings = { ...this.settings, ...patch }; this.applySettings(); return saveSettings(patch); },
       toast: (t) => toast(t),
       onHotkey: (combo) => this.fireHotkey(combo),
+      onBadConn: () => this.toggleBadConn(),
     });
 
     this.src.addEventListener('meet-memes-frame', () => this.onFrame());
@@ -106,11 +118,16 @@ class App {
     chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
       if (msg && msg.type === 'status') reply(this.status());
       if (msg && msg.type === 'diagnostics') reply(this.diagnostics());
+      if (msg && msg.type === 'badconn') {
+        if (!!msg.on !== this.badConn.active) this.toggleBadConn();
+        reply(this.status());
+      }
     });
     this.pill = new Pill({
-      getState: () => this.settings,
+      getState: () => ({ ...this.settings, badConn: this.badConn.active }),
       onMode: (mode) => this.modes.set(mode),
       onMirror: () => this.modes.toggleMirror(),
+      onBadConn: () => this.toggleBadConn(),
       onGuide: () => chrome.runtime.sendMessage({ type: 'open-guide' }).catch(() => {}),
     });
     const mountPill = () => this.pill.mount().catch((err) => console.warn('[meet-memes] pill failed', err));
@@ -153,9 +170,7 @@ class App {
     if (this.pill) this.pill.update();
     if (this.sfx) this.sfx.setVolume(s.soundVolume);
     if (this.overlay) this.overlay.setMirror(!!s.mirror && on);
-    if (this.pill) this.pill.update();
-    if (this.sfx) this.sfx.setVolume(s.soundVolume);
-    if (this.overlay) this.overlay.setMirror(!!s.mirror && on);
+    if (this.badConn) this.badConn.sync();
     this.enabledMemes = on ? this.memes.filter((m) => isMemeEnabled(s, m.def)) : [];
     this.gesturesOn = s.activeMode === 'meme';
     this.needsDetection = this.gesturesOn && this.enabledMemes.some((m) => m.trigger);
@@ -197,7 +212,9 @@ class App {
     }
     active.sort((a, b) => a.effect.layer - b.effect.layer);
 
-    if (active.length || mirror) {
+    const bad = this.badConn.videoOn;
+    const drawn = active.length || mirror || bad;
+    if (drawn) {
       const g = this.compositor.begin(frame, { now, mask: this.det.mask });
       const env = { w: frame.width, h: frame.height, now, src: frame, det: this.det, g, quality: this.compositor.quality, mirror };
       g.drawFrame();
@@ -213,6 +230,9 @@ class App {
         }
       }
       this.compositor.end();
+      if (bad) {
+        try { this.badConn.apply(this.compositor.fxCtx, frame.width, frame.height, now); } catch (err) { console.warn('[meet-memes] bad connection failed', err); }
+      }
       this.root.dataset.used = '1';
     }
 
@@ -220,7 +240,7 @@ class App {
     this.ftMax = Math.max(this.ftMax || 0, ft);
     if (now - (this.ftAt || 0) > 1000) { this.root.dataset.frameMs = this.ftMax.toFixed(1); this.ftMax = 0; this.ftAt = now; }
     if (this.preview.el) {
-      this.preview.draw(active.length || mirror ? this.compositor.fx : src, this.det, this.settings.debug, this.settings.debug ? this.debugLines(active) : []);
+      this.preview.draw(drawn ? this.compositor.fx : src, this.det, this.settings.debug, this.settings.debug ? this.debugLines(active) : []);
     }
   }
 
@@ -293,6 +313,11 @@ class App {
     }
   }
 
+  toggleBadConn() {
+    this.badConn.toggle();
+    if (this.pill) this.pill.update();
+  }
+
   fireHotkey(combo) {
     if (!isOn(this.settings)) return false;
     const meme = this.enabledMemes.find((m) => m.def.hotkey === combo);
@@ -319,6 +344,7 @@ class App {
       hands: this.det.hands.map((h) => h.gesture.name),
       face: !!this.det.face,
       mic: this.audio.running,
+      badConn: { on: this.badConn.active, kind: this.badConn.kind },
       lastFired: this.lastFired && { id: this.lastFired.id, agoMs: Math.round(now - this.lastFired.at) },
     };
   }

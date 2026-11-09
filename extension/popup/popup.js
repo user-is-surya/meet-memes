@@ -62,6 +62,11 @@ async function renderStatus() {
     box.replaceChildren(...line('bad', 'Not running in this tab yet.', 'Refresh the Meet tab (the extension only attaches when the page loads).'));
     return;
   }
+  const bt = $('badconn-toggle');
+  bt.disabled = !s.enabled;
+  bt.dataset.on = s.badConn && s.badConn.on ? '1' : '';
+  bt.textContent = bt.dataset.on ? '⏹ Stop' : 'Start';
+  bt.dataset.tab = tab.id;
   const rows = [
     ...line(s.cameraLive ? 'ok' : 'bad',
       s.cameraLive ? `Camera hooked (${s.frameSize})` : 'No camera frames',
@@ -77,6 +82,7 @@ async function renderStatus() {
     rows.push(...line(s.face ? 'ok' : 'wait', s.face ? 'Face visible' : 'No face detected'));
     rows.push(...line(s.hands.length ? 'ok' : 'wait', s.hands.length ? `Hands: ${s.hands.join(', ')}` : 'No hands in view'));
   }
+  if (s.badConn && s.badConn.on) rows.push(...line('wait', `Bad connection is on (${s.badConn.kind === 'both' ? 'video + audio' : s.badConn.kind + ' only'})`));
   if (s.lastFired) rows.push(...line('ok', `Last meme: ${s.lastFired.id}, ${Math.round(s.lastFired.agoMs / 1000)}s ago`));
   if (!s.enabled) rows.push(...line('bad', 'Turned off (switch at the top, or Alt+Shift+0)'));
   box.replaceChildren(...rows);
@@ -112,6 +118,16 @@ async function main() {
     $(key).checked = !!settings[key];
     $(key).addEventListener('change', () => saveSettings({ [key]: $(key).checked }));
   }
+  $('badConnKind').value = settings.badConnKind;
+  $('badConnKind').addEventListener('change', () => saveSettings({ badConnKind: $('badConnKind').value }));
+  $('badConnAutoLeaveSec').value = String(settings.badConnAutoLeaveSec);
+  $('badConnAutoLeaveSec').addEventListener('change', () => saveSettings({ badConnAutoLeaveSec: Number($('badConnAutoLeaveSec').value) }));
+  $('badconn-toggle').addEventListener('click', async () => {
+    const bt = $('badconn-toggle');
+    if (!bt.dataset.tab) return;
+    await chrome.tabs.sendMessage(Number(bt.dataset.tab), { type: 'badconn', on: !bt.dataset.on }).catch(() => {});
+    renderStatus();
+  });
   $('soundVolume').value = settings.soundVolume;
   $('soundVolume').addEventListener('change', () => saveSettings({ soundVolume: Number($('soundVolume').value) }));
   $('guide').addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL('guide/guide.html') }));

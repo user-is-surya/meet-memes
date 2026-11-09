@@ -5,6 +5,10 @@
 
 export const SETTINGS_VERSION = 2;
 export const MODES = ['off', 'meme', 'draw', 'spell'];
+export const BAD_CONN_KINDS = ['video', 'audio', 'both'];
+export const AUTO_LEAVE_SECS = [0, 15, 30, 60];
+export const SPELL_STYLES = ['strange', 'wanda', 'doom'];
+export const DRAW_COLORS = 6;
 
 export const DEFAULT_SETTINGS = {
   settingsVersion: SETTINGS_VERSION,
@@ -18,6 +22,10 @@ export const DEFAULT_SETTINGS = {
   debug: false,
   snapUsesMic: true,
   detectFps: 15,
+  badConnKind: 'both', // video | audio | both
+  badConnAutoLeaveSec: 0, // 0 = never; else leave the call after this long
+  spellStyle: 'strange', // strange | wanda | doom
+  drawColor: 0, // index into the Draw mode palette
   memes: {}, // per meme id: { enabled?: boolean, asset?: '<assetId>' }
 };
 
@@ -34,6 +42,10 @@ export function migrateSettings(raw) {
   const out = { ...DEFAULT_SETTINGS, ...src, settingsVersion: SETTINGS_VERSION, memes: { ...src.memes } };
   if (!MODES.includes(out.activeMode)) out.activeMode = 'meme';
   if (!MODES.includes(out.lastMode) || out.lastMode === 'off') out.lastMode = 'meme';
+  if (!BAD_CONN_KINDS.includes(out.badConnKind)) out.badConnKind = 'both';
+  if (!AUTO_LEAVE_SECS.includes(out.badConnAutoLeaveSec)) out.badConnAutoLeaveSec = 0;
+  if (!SPELL_STYLES.includes(out.spellStyle)) out.spellStyle = 'strange';
+  if (!Number.isInteger(out.drawColor) || out.drawColor < 0 || out.drawColor >= DRAW_COLORS) out.drawColor = 0;
   return out;
 }
 

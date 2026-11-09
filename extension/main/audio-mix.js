@@ -44,8 +44,68 @@
     return true;
   };
 
+  // Fake bad connection, audio side. Alternates clear stretches with dropouts (silence),
+  // robotic packet-loss buzz (a 15 ms grain repeated, decaying) and muffled low-bitrate
+  // audio. burst(ms) forces silence while the video side shows a long freeze.
+  const bc = { on: false, r: Math.random, seg: 'clear', segUntil: 0, burstUntil: -Infinity, grain: null, rep: 0, lp: 0 };
+  const seeded = (seed) => {
+    let s = (seed >>> 0) || 1;
+    return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+  };
+  const SEGS = { clear: [200, 1000], drop: [80, 600], robot: [120, 500], lofi: [300, 900] };
+  MM.badconn = {
+    set({ on, seed, now = performance.now() } = {}) {
+      bc.on = !!on;
+      if (!bc.on) return;
+      bc.r = seed !== undefined ? seeded(seed) : Math.random;
+      bc.seg = 'clear';
+      bc.segUntil = now + 400 + bc.r() * 600;
+      bc.burstUntil = -Infinity;
+    },
+    burst(ms, now = performance.now()) { if (bc.on) bc.burstUntil = Math.max(bc.burstUntil, now + ms); },
+    get on() { return bc.on; },
+    // planes: Float32Array per channel, modified in place. Returns true if anything changed.
+    degrade(planes, rate, now) {
+      if (!bc.on || !planes.length) return false;
+      const n = planes[0].length;
+      if (now < bc.burstUntil) { for (const p of planes) p.fill(0); return true; }
+      if (now >= bc.segUntil) {
+        if (bc.seg !== 'clear') bc.seg = 'clear';
+        else { const x = bc.r(); bc.seg = x < 0.5 ? 'drop' : x < 0.8 ? 'robot' : 'lofi'; }
+        const [lo, hi] = SEGS[bc.seg];
+        bc.segUntil = now + lo + bc.r() * (hi - lo);
+        if (bc.seg === 'robot') {
+          bc.grain = planes[0].slice(0, Math.min(n, Math.round(rate * 0.015)));
+          bc.rep = 0;
+        }
+      }
+      if (bc.seg === 'clear') return false;
+      if (bc.seg === 'drop') { for (const p of planes) p.fill(0); return true; }
+      if (bc.seg === 'robot' && bc.grain && bc.grain.length) {
+        const g = bc.grain, len = g.length;
+        for (let i = 0; i < n; i++) {
+          const k = bc.rep + i;
+          const s = g[k % len] * 0.92 ** Math.floor(k / len);
+          for (const p of planes) p[i] = s;
+        }
+        bc.rep += n;
+        return true;
+      }
+      // lofi: sample-and-hold every 4th sample, one-pole low-pass, a bit quieter.
+      let lp = bc.lp, held = 0;
+      for (let i = 0; i < n; i++) {
+        if (i % 4 === 0) held = planes[0][i];
+        lp += (held - lp) * 0.35;
+        const s = lp * 0.85;
+        for (const p of planes) p[i] = s;
+      }
+      bc.lp = lp;
+      return true;
+    },
+  };
+
   function mixChunk(data, source) {
-    if (!voices.length) return data;
+    if (!voices.length && !bc.on) return data;
     const allowed = MM.sfxAllowed(source);
     const ch = data.numberOfChannels, n = data.numberOfFrames, rate = data.sampleRate;
     if (!allowed) {
@@ -65,6 +125,7 @@
       planes.push(p);
     }
     MM.mixInto(planes, rate, voices, MM.sfxVolume ?? 1);
+    MM.badconn.degrade(planes, rate, performance.now());
     const out = new AudioData({ format: 'f32-planar', sampleRate: rate, numberOfFrames: n, numberOfChannels: ch, timestamp: data.timestamp, data: buf });
     data.close();
     return out;
@@ -115,6 +176,8 @@
       const m = e.data;
       if (m.__mm === 'sfx-load' && m.pcm) buffers.set(m.key, { pcm: m.pcm, rate: m.rate || 48000 });
       else if (m.__mm === 'sfx-volume') MM.sfxVolume = m.volume;
+      else if (m.__mm === 'badconn') MM.badconn.set({ on: m.on });
+      else if (m.__mm === 'badconn-burst') MM.badconn.burst(m.ms || 0);
       else if (m.__mm === 'sfx-play') {
         const b = buffers.get(m.key);
         if (!b) return;

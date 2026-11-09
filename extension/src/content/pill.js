@@ -3,8 +3,8 @@
 // to move it (position is remembered).
 const MODES = [
   { id: 'meme', icon: '🎭', label: 'Meme mode (Alt+Shift+M)' },
-  { id: 'draw', icon: '✏️', label: 'Draw mode (Alt+Shift+D), coming soon' },
-  { id: 'spell', icon: '✨', label: 'Spell mode (Alt+Shift+S), coming soon' },
+  { id: 'draw', icon: '✏️', label: 'Draw mode (Alt+Shift+D)' },
+  { id: 'spell', icon: '✨', label: 'Spell mode (Alt+Shift+S)' },
   { id: 'off', icon: '⏻', label: 'Off (Alt+Shift+0)' },
 ];
 
@@ -22,13 +22,12 @@ button { all: unset; cursor: pointer; width: 30px; height: 28px; border-radius: 
   font-size: 15px; position: relative; }
 button:hover { background: rgba(255,255,255,.12); }
 button.on { background: rgba(139, 92, 246, .55); }
-button.soon::after { content: ''; position: absolute; top: 4px; right: 5px; width: 5px; height: 5px; border-radius: 50%; background: #facc15; }
 .sep { width: 1px; height: 18px; background: rgba(255,255,255,.2); margin: 0 3px; }
 `;
 
 export class Pill {
-  constructor({ getState, onMode, onMirror, onGuide }) {
-    Object.assign(this, { getState, onMode, onMirror, onGuide });
+  constructor({ getState, onMode, onMirror, onGuide, onBadConn = () => {} }) {
+    Object.assign(this, { getState, onMode, onMirror, onGuide, onBadConn });
     this.idleTimer = 0;
   }
 
@@ -40,9 +39,10 @@ export class Pill {
     shadow.innerHTML = `<style>${CSS}</style><div class="wrap collapsed">
       <div class="dot" title="Meet Memes (drag to move)">🎭</div>
       <div class="items">
-        ${MODES.map((m) => `<button data-mode="${m.id}" title="${m.label}" class="${m.id === 'draw' || m.id === 'spell' ? 'soon' : ''}">${m.icon}</button>`).join('')}
+        ${MODES.map((m) => `<button data-mode="${m.id}" title="${m.label}">${m.icon}</button>`).join('')}
         <span class="sep"></span>
         <button data-action="mirror" title="Mirror: others see your selfie view (Alt+Shift+R)">🪞</button>
+        <button data-action="badconn" title="Fake a bad connection (Alt+Shift+B)">📶</button>
         <button data-action="guide" title="Open the guide">❔</button>
       </div></div>`;
     this.wrap = shadow.querySelector('.wrap');
@@ -53,6 +53,7 @@ export class Pill {
       if (!b) return;
       if (b.dataset.mode) this.onMode(b.dataset.mode);
       else if (b.dataset.action === 'mirror') this.onMirror();
+      else if (b.dataset.action === 'badconn') this.onBadConn();
       else if (b.dataset.action === 'guide') this.onGuide();
     });
     host.addEventListener('mouseenter', () => this.expand());
@@ -99,7 +100,8 @@ export class Pill {
     if (!this.wrap) return;
     const s = this.getState();
     for (const b of this.wrap.querySelectorAll('[data-mode]')) b.classList.toggle('on', b.dataset.mode === s.activeMode);
-    this.wrap.querySelector('[data-action="mirror"]').classList.toggle('on', !!s.mirror);
+    this.wrap.querySelector('[data-action="mirror"]').classList.toggle('on', !!s.mirror || s.activeMode === 'draw');
+    this.wrap.querySelector('[data-action="badconn"]').classList.toggle('on', !!s.badConn);
     this.dot.textContent = { off: '⏻', meme: '🎭', draw: '✏️', spell: '✨' }[s.activeMode] || '🎭';
   }
 }
