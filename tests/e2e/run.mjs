@@ -26,6 +26,11 @@ export async function open({ effect = 'blur', settings = null, harness = true, a
       '--use-fake-device-for-media-stream',
       `--use-file-for-fake-video-capture=${video.endsWith('.y4m') ? video : video === 'webcam' ? WEBCAM : Y4M}`,
       '--autoplay-policy=no-user-gesture-required',
+      // A hidden or covered test window gets its timers throttled to 1 Hz, which starves
+      // the canvas-driven fake cameras (one frame a second) and makes timing tests flaky.
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
     ],
   });
   ctx.setDefaultTimeout(20000);
