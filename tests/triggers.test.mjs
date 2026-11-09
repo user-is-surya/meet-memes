@@ -96,6 +96,20 @@ test('snap with mic: needs the sound after a pinch', () => {
   assert.equal(t.update(det([open]), 150).active, true);
 });
 
+test('snap with mic: a snap-like sound half a second after a pinch is not a snap', () => {
+  // A real snap's sound comes as the finger leaves the thumb, right after the last pinch frame.
+  const audio = { running: true, lastSpikeAt: -Infinity, spikeSince(t) { return this.lastSpikeAt >= t; } };
+  const t = createTrigger({ type: 'snap' }, { audio: () => audio });
+  const open = hand({ x: 0.5, y: 0.6 });
+  const tip = open.landmarks[12];
+  const pinch = hand({ x: 0.5, y: 0.6, fingers: { ring: 'curl', pinky: 'curl' }, thumbTip: { x: tip.x, y: tip.y } });
+  assert.equal(t.update(det([pinch]), 0).active, false);
+  assert.equal(t.update(det([open]), 80).active, false);
+  assert.equal(t.update(det([open]), 400).active, false);
+  audio.lastSpikeAt = 500;
+  assert.equal(t.update(det([open]), 520).active, false);
+});
+
 test('any-of trigger arrays and hotkey-only memes', () => {
   assert.equal(createTrigger(null, ctx), null);
   const t = createTrigger([
@@ -184,14 +198,22 @@ test('Absolute Cinema rejects fists raised beside the head', () => {
 const thumbAt = (x, y) => det([hand({ x, y, gesture: 'Thumb_Up', fingers: { index: 'curl', middle: 'curl', ring: 'curl', pinky: 'curl' } })]);
 const mic = () => ({ running: true, lastSpikeAt: -Infinity, lastClickAt: -Infinity, spikeSince(t) { return this.lastSpikeAt >= t; } });
 
-test('Noice: thumb beside the face fires on a tongue click (with mic)', () => {
+test('Noice: a tongue click fires it early (with mic)', () => {
   const audio = mic();
   const t = createTrigger({ type: 'thumb-by-face' }, { audio: () => audio });
   let fired = 0;
-  for (let ms = 0; ms <= 1500; ms += 50) if (t.update(thumbAt(0.68, 0.45), ms).active) fired++;
-  assert.equal(fired, 0, 'no click, no fire, even when held');
-  audio.lastClickAt = 1520;
-  assert.equal(t.update(thumbAt(0.68, 0.45), 1550).active, true);
+  for (let ms = 0; ms <= 600; ms += 50) if (t.update(thumbAt(0.68, 0.45), ms).active) fired++;
+  assert.equal(fired, 0, 'no click yet, not held long enough');
+  audio.lastClickAt = 620;
+  assert.equal(t.update(thumbAt(0.68, 0.45), 650).active, true);
+});
+
+test('Noice: holding the thumb beside the face for 1 s fires it even with the mic on', () => {
+  const audio = mic();
+  const t = createTrigger({ type: 'thumb-by-face' }, { audio: () => audio });
+  let r;
+  for (let ms = 0; ms <= 1050; ms += 50) r = t.update(thumbAt(0.68, 0.45), ms);
+  assert.equal(r.active, true);
 });
 
 test('Noice: a click before the thumb has been up 200 ms does not count', () => {
@@ -210,11 +232,11 @@ test('Noice: thumbs up at chest height never fires', () => {
   assert.equal(fired, false);
 });
 
-test('Noice without mic: hold the thumb beside the face for 1.2 s', () => {
+test('Noice without mic: hold the thumb beside the face for 1 s', () => {
   const t = createTrigger({ type: 'thumb-by-face' }, { audio: () => null });
   assert.equal(t.update(thumbAt(0.32, 0.45), 0).active, false);
-  assert.equal(t.update(thumbAt(0.32, 0.45), 1000).active, false);
-  assert.equal(t.update(thumbAt(0.32, 0.45), 1250).active, true);
+  assert.equal(t.update(thumbAt(0.32, 0.45), 800).active, false);
+  assert.equal(t.update(thumbAt(0.32, 0.45), 1050).active, true);
 });
 
 test('classifyTransient tells clicks from snaps and ignores speech', async () => {
@@ -335,4 +357,22 @@ test('snap without mic: a talking pinch with ring and pinky out does not count',
   t.update(det([pinchOpenFingers]), 0);
   t.update(det([pinchOpenFingers]), 60);
   assert.equal(t.update(det([after]), 130).active, false);
+});
+
+test('Emotional Damage needs a real detected face (no guessing where the chest is)', () => {
+  const t = createTrigger({ type: 'hand-on-chest', holdMs: 0 }, ctx);
+  let fired = false;
+  for (let ms = 0; ms <= 1000; ms += 50) fired ||= t.update(det([flat(0.48, 0.7)], null), ms).active;
+  assert.equal(fired, false);
+});
+
+test('snap without mic: a loose fist jiggling is not a snap', () => {
+  const t = createTrigger({ type: 'snap' }, ctx);
+  const curled = { index: 'curl', middle: 'curl', ring: 'curl', pinky: 'curl' };
+  const fistA = hand({ x: 0.5, y: 0.6, fingers: curled });
+  const tip = fistA.landmarks[12];
+  const fistPinch = hand({ x: 0.5, y: 0.6, fingers: curled, thumbTip: { x: tip.x, y: tip.y } });
+  let fired = false;
+  for (let ms = 0; ms <= 1500; ms += 60) fired ||= t.update(det([ms % 240 < 120 ? fistPinch : fistA]), ms).active;
+  assert.equal(fired, false);
 });

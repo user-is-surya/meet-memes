@@ -18,7 +18,8 @@ export class BackgroundModel {
   }
 
   // frame: RGBA (w*h*4); mask: RGBA where alpha = person confidence, same size.
-  learn(frame, mask) {
+  // trust: count this sighting as fully trusted (used once at the moment of a snap).
+  learn(frame, mask, { trust = false } = {}) {
     const { w, h, person, tmp, rgba, known } = this;
     const n = w * h;
     for (let i = 0; i < n; i++) person[i] = mask[i * 4 + 3] > 50 ? 1 : 0;
@@ -58,7 +59,7 @@ export class BackgroundModel {
         rgba[p + 2] += (frame[p + 2] - rgba[p + 2]) * a;
         if (seen[i] < 255) seen[i]++;
       }
-      if (seen[i] >= minSeen) known[i] = 1;
+      if (seen[i] >= minSeen || trust) known[i] = 1;
     }
   }
 

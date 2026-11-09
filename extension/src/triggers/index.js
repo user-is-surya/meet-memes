@@ -90,17 +90,23 @@ const conditions = {
         const size = handSize(lm, det.aspect);
         // A snap pinches thumb + middle with the ring and pinky folded down; a talking
         // pinch (OK sign, precision grip) usually leaves them out.
-        const folded = reach(lm, L.RING_TIP, det.aspect) < 1.45 && reach(lm, L.PINKY_TIP, det.aspect) < 1.45;
+        const folded = reach(lm, L.RING_TIP, det.aspect) < 1.45 && reach(lm, L.PINKY_TIP, det.aspect) < 1.45
+          && reach(lm, L.MIDDLE_TIP, det.aspect) >= 1.25; // middle finger straight against the thumb, not a curled fist
         const pinch = folded && dist(lm[L.THUMB_TIP], lm[L.MIDDLE_TIP], det.aspect) / size < pinchRatio;
         if (audio && audio.running) {
           if (pinch) st.pinchAt = now;
-          if (now - st.pinchAt < 700 && audio.spikeSince(st.pinchAt - 250) && now - audio.lastSpikeAt < 600) {
+          // The sound comes as the finger leaves the thumb: right after the last pinch frame
+          // (or slightly before it, since video detection lags the mic).
+          const s = audio.lastSpikeAt;
+          if (s >= st.pinchAt - 250 && s <= st.pinchAt + 300 && now - s < 600) {
             st.pinchAt = -Infinity;
             return { hand: palm(lm) };
           }
         } else if (pinch) {
+          st.pinchN = now - st.pinchAt < 200 ? (st.pinchN || 0) + 1 : 1;
           st.pinchAt = now;
-        } else if (now - st.pinchAt < 450 && reach(lm, L.MIDDLE_TIP, det.aspect) < 1.35) {
+        } else if (now - st.pinchAt < 450 && (st.pinchN || 0) >= 2 && reach(lm, L.MIDDLE_TIP, det.aspect) < 1.35) {
+          st.pinchN = 0;
           st.pinchAt = -Infinity;
           return { hand: palm(lm) };
         }
@@ -109,28 +115,28 @@ const conditions = {
     };
   },
 
-  // Noice: a thumbs up held beside the face (not in front of the chest) plus a tongue click.
-  // Without a mic: hold it there for holdNoMicMs.
+  // Noice: a thumbs up with the thumb tip beside the face (level with it, not down at the
+  // chest), plus a tongue click, or simply held there for holdNoMicMs.
+  // Calibrated on real footage: the palm sits at or below the chin, the thumb tip is level
+  // with the face and just outside it.
   'thumb-by-face'(spec, ctx) {
-    const minScore = spec.minScore ?? 0.6, holdNoMic = spec.holdNoMicMs ?? 1200, minHold = spec.minHoldMs ?? 200;
+    const minScore = spec.minScore ?? 0.55, holdMs = spec.holdNoMicMs ?? 1000, minHold = spec.minHoldMs ?? 200;
     let since = null;
-    const beside = (p, b) => {
-      const left = p.x >= b.x - b.w * 0.6 && p.x <= b.x + b.w * 0.15;
-      const right = p.x >= b.x + b.w * 0.85 && p.x <= b.x + b.w * 1.6;
-      return (left || right) && p.y >= b.y - b.h * 0.2 && p.y <= b.y + b.h * 1.2;
+    const beside = (t, b) => {
+      const left = t.x >= b.x - b.w * 0.8 && t.x <= b.x + b.w * 0.1;
+      const right = t.x >= b.x + b.w * 0.9 && t.x <= b.x + b.w * 1.8;
+      return (left || right) && t.y >= b.y - b.h * 0.2 && t.y <= b.y + b.h * 1.05;
     };
     return (det, now) => {
       const face = det.face;
-      const h = face && det.hands.find((x) => x.gesture.name === 'Thumb_Up' && x.gesture.score >= minScore && beside(palm(x.landmarks), face.box));
+      const h = face && det.hands.find((x) => x.gesture.name === 'Thumb_Up' && x.gesture.score >= minScore && beside(x.landmarks[L.THUMB_TIP], face.box));
       if (!h) { since = null; return null; }
       if (since === null) since = now;
-      const p = palm(h.landmarks);
+      const p = palm(h.landmarks), held = now - since;
       const audio = ctx.audio && ctx.audio();
-      if (audio && audio.running && audio.lastClickAt !== undefined) {
-        const click = audio.lastClickAt;
-        return now - since >= minHold && click >= since + minHold && now - click < 400 ? { hand: p } : null;
-      }
-      return now - since >= holdNoMic ? { hand: p } : null;
+      const clicked = !!(audio && audio.running && audio.lastClickAt !== undefined
+        && held >= minHold && audio.lastClickAt >= since + minHold && now - audio.lastClickAt < 400);
+      return clicked || held >= holdMs ? { hand: p } : null;
     };
   },
 
@@ -163,16 +169,19 @@ const conditions = {
     const hist = [];
     return (det, now) => {
       const face = det.face;
-      const box = face ? face.box : { x: 0.4, y: 0.2, w: 0.2, h: 0.3 };
-      const nose = face ? face.nose : { x: 0.5, y: 0.35 };
+      if (!face) { hist.length = 0; return null; }
+      const box = face.box, nose = face.nose;
       const onChest = det.hands.filter((h) => {
         const lm = h.landmarks, p = palm(lm);
         const tips = [L.INDEX_TIP, L.MIDDLE_TIP, L.RING_TIP, L.PINKY_TIP];
         const meanReach = tips.reduce((s, t) => s + reach(lm, t, det.aspect), 0) / tips.length;
-        if (meanReach < 1.45 || h.gesture.name === 'Closed_Fist') return false;
+        const openPalm = h.gesture.name === 'Open_Palm' && h.gesture.score >= 0.5;
+        if (h.gesture.name === 'Closed_Fist' || (!openPalm && meanReach < 1.6)) return false;
+        // Whole hand inside the frame (hands resting at the bottom edge don't count).
+        if (lm.some((q) => q.y > 0.96 || q.x < 0.02 || q.x > 0.98)) return false;
         const below = (p.y - (box.y + box.h)) / box.h;
-        if (below < 0.3 || below > 1.6) return false;
-        return Math.abs(p.x - nose.x) * det.aspect <= 0.9 * box.w * det.aspect;
+        if (below < 0.3 || below > 1.3) return false;
+        return Math.abs(p.x - nose.x) * det.aspect <= 0.7 * box.w * det.aspect;
       });
       const chestZone = det.hands.filter((h) => palm(h.landmarks).y > box.y + box.h * 1.2);
       if (onChest.length !== 1 || chestZone.length !== 1) { hist.length = 0; return null; }
@@ -186,13 +195,15 @@ const conditions = {
     };
   },
 
-  // Laser eyes: a wide-eyed stare with raised brows, and no hand near the face.
+  // Laser eyes: raised brows with widened eyes, and no hand near the face.
+  // Calibrated on real footage: brows are the strong signal (0.5-0.8 when raised); "eye
+  // wide" scores stay low (0.15-0.35) and differ between the eyes.
   stare(spec) {
-    const wide = spec.eyeWide ?? 0.35, inner = spec.browInnerUp ?? 0.45, outer = spec.browOuterUp ?? 0.35;
+    const wide = spec.eyeWide ?? 0.15, inner = spec.browInnerUp ?? 0.5, outer = spec.browOuterUp ?? 0.4;
     return (det) => {
       const f = det.face, bs = f && f.blendshapes;
       if (!bs) return null;
-      if ((bs.eyeWideLeft || 0) < wide || (bs.eyeWideRight || 0) < wide) return null;
+      if (Math.max(bs.eyeWideLeft || 0, bs.eyeWideRight || 0) < wide) return null;
       if ((bs.browInnerUp || 0) < inner) return null;
       if (((bs.browOuterUpLeft || 0) + (bs.browOuterUpRight || 0)) / 2 < outer) return null;
       const b = f.box, cx = b.x + b.w / 2, cy = b.y + b.h / 2;

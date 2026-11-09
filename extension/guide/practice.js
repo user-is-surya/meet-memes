@@ -55,6 +55,16 @@ export class Practice {
     $('record-gesture').addEventListener('click', () => this.startRecording('gesture'));
     $('record-normal').addEventListener('click', () => this.startRecording('normal'));
     $('record-stop').addEventListener('click', () => this.stopRecording());
+    // Same hotkeys as in Meet: Alt+Shift+1..8 play that meme here.
+    window.addEventListener('keydown', (e) => {
+      const m = e.altKey && e.shiftKey && !e.ctrlKey && /^Digit([1-9])$/.exec(e.code);
+      if (!m) return;
+      const def = this.defs.find((d) => d.hotkey === 'Alt+Shift+' + m[1]);
+      if (!def) return;
+      e.preventDefault();
+      if (this.selected !== def.id) this.select(def.id);
+      this.tryIt();
+    });
     this.select(this.selected);
   }
 
@@ -68,7 +78,11 @@ export class Practice {
     this.audio = this.audio || new SnapListener();
     this.trigger = createTrigger(def.trigger, { audio: () => (this.audio.running ? this.audio : null) });
     this.arbiter = new TriggerArbiter({ quietMs: 1200 });
-    this.effect = null;
+    // Create the effect right away, so it can prepare while you practise (Thanos learns your
+    // room, laser eyes track your irises) before it ever fires.
+    this.assets = this.assets || new AssetStore(localEngine);
+    this.effect = createEffect(def, { assets: this.assets, toast: (t) => { $('practice-hint').textContent = t; } });
+    if (this.effect) this.effect.load().catch(() => {});
   }
 
   setStatus(state, text) {
@@ -199,10 +213,7 @@ export class Practice {
     const def = this.defs.find((d) => d.id === this.selected);
     if (!def) return;
     if (!this.running) await this.start();
-    if (!this.effect || this.effect.def.id !== def.id) {
-      this.effect = createEffect(def, { assets: this.assets });
-      if (this.effect) await this.effect.load().catch(() => {});
-    }
+    if (!this.effect || this.effect.def.id !== def.id) this.select(def.id);
     if (this.effect) this.effect.fire({ hand: { x: 0.5, y: 0.6 } }, performance.now(), { hotkey: true });
   }
 

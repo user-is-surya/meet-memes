@@ -78,3 +78,9 @@ test('a sudden change (a person drifting into a misdetected spot) resets trust',
   assert.equal(bg.snapshot().known[0], 0, 'big jump: no longer trusted');
   assert.equal(bg.snapshot().rgba[0], 90, 'and the old value is not overwritten by the outlier');
 });
+
+test('a forced learn (at the moment of the snap) trusts what it sees right away', () => {
+  const bg = new BackgroundModel(2, 1, { dilate: 0, minSeen: 4 });
+  bg.learn(new Uint8ClampedArray([90, 90, 90, 255, 1, 2, 3, 255]), new Uint8ClampedArray([0, 0, 0, 0, 0, 0, 0, 255]), { trust: true });
+  assert.deepEqual(Array.from(bg.snapshot().known), [1, 0]);
+});

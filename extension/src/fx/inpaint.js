@@ -241,8 +241,15 @@ export function matchBorder(rgba, known, w, h) {
 // Full empty-room plate from a background snapshot: content-aware fill at half
 // resolution for never-seen pixels, nearest-pixel fill if that fails.
 export function buildPlate(rgba, known, w, h) {
+  let k = 0;
+  for (let i = 0; i < w * h; i++) k += known[i];
+  // Too little of the room has been seen to rebuild it: never return a black plate.
+  if (k < w * h * 0.03) return null;
   try {
     const half = downsample(rgba, known, w, h);
+    let hk = 0;
+    for (let i = 0; i < half.known.length; i++) hk += half.known[i];
+    if (hk < half.known.length * 0.02) return matchBorder(nearestFill(rgba, known, w, h), known, w, h);
     const filled = inpaint(half.rgba, half.known, half.w, half.h);
     const full = new Uint8ClampedArray(rgba);
     upsampleInto(full, known, w, h, filled, half.w, half.h);

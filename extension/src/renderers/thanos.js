@@ -125,7 +125,7 @@ export class ThanosEffect extends Effect {
   onDetect(det, src, force = false) {
     if (!det.mask || !src || !src.width) return;
     const now = performance.now();
-    if (!force && (now - this.lastLearn < 150 || this.tl.state === 'pause')) return;
+    if (!force && (now - this.lastLearn < 150 || this.tl.state !== 'idle')) return;
     this.lastLearn = now;
     const scale = Math.min(1, 960 / src.width);
     const w = Math.max(16, Math.round(src.width * scale)), h = Math.max(9, Math.round(src.height * scale));
@@ -139,7 +139,7 @@ export class ThanosEffect extends Effect {
     const frame = c.getImageData(0, 0, w, h).data;
     c.drawImage(det.mask, 0, 0, w, h);
     const mask = c.getImageData(0, 0, w, h).data;
-    this.bg.learn(frame, mask);
+    this.bg.learn(frame, mask, { trust: force });
   }
 
   // Snapshot the learned room and build the plate (content-aware fill) in the engine
@@ -151,7 +151,8 @@ export class ThanosEffect extends Effect {
     const { rgba, known, w, h } = this.bg.snapshot();
     const token = this.snapToken = (this.snapToken || 0) + 1;
     const done = (full) => {
-      if (!full || token !== this.snapToken) return;
+      if (token !== this.snapToken) return;
+      if (!full) { this.abortSnap(); return; }
       this.plate = this.plate && this.plate.width === w && this.plate.height === h ? this.plate : new OffscreenCanvas(w, h);
       this.plate.getContext('2d').putImageData(new ImageData(full, w, h), 0, 0);
       this.plateReady = true;
@@ -164,9 +165,17 @@ export class ThanosEffect extends Effect {
 
   // The good fill is late (slow machine): carry on with an instant nearest-pixel fill.
   // When the content-aware fill arrives it replaces this.
+  abortSnap() {
+    const msg = 'Thanos needs to see more of your room. Move a little, then snap again.';
+    if (this.deps && this.deps.toast) this.deps.toast(msg); else console.warn('[meet-memes]', msg);
+    this.stop();
+  }
+
   useQuickPlate() {
     const d = this.snapData;
     if (!d) return;
+    let k = 0; for (let i = 0; i < d.known.length; i++) k += d.known[i];
+    if (k < d.known.length * 0.03) { this.abortSnap(); return; }
     this.plate = this.plate && this.plate.width === d.w && this.plate.height === d.h ? this.plate : new OffscreenCanvas(d.w, d.h);
     this.plate.getContext('2d').putImageData(new ImageData(nearestFill(d.rgba, d.known, d.w, d.h), d.w, d.h), 0, 0);
     this.plateReady = true;
@@ -323,9 +332,9 @@ export class ThanosEffect extends Effect {
     const q = env.quality ?? 1;
 
     if (st.justEntered && st.state === 'pause') {
-      // Snapped before the room was learned (e.g. right after joining): learn it from this frame.
-      if (!this.bg && env.det && env.det.mask) this.onDetect(env.det, env.src, true);
-      if (!this.bg) {
+      // Learn the room you can see right now as well (covers snapping before it was learned).
+      if (env.det && env.det.mask) this.onDetect(env.det, env.src, true);
+      if (!this.bg || this.bg.coverage() < 0.05) {
         const msg = 'Thanos needs a second to see your room. Snap again in a moment.';
         if (this.deps && this.deps.toast) this.deps.toast(msg); else console.warn('[meet-memes]', msg);
         this.stop();
@@ -337,6 +346,7 @@ export class ThanosEffect extends Effect {
     if (st.state === 'dissolving' && !this.plateReady) {
       if (now - this.startAt < 2000) { this.tl.enter('pause', now - PAUSE_MS + 16); return; }
       this.useQuickPlate();
+      if (!this.plateReady) return;
     }
     if (st.state === 'dissolving' || st.state === 'returning') this.sample(env);
     if (st.justEntered && st.state === 'returning') { this.dust.clear(); this.spawnShimmer(); }

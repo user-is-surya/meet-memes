@@ -14,7 +14,7 @@ const WEBCAM = join(here, 'webcam.y4m');
 const HTML = readFileSync(join(here, 'fake-meet.html'), 'utf8');
 
 export async function open({ effect = 'blur', settings = null, harness = true, audio = '', cam = '', video = 'person' } = {}) {
-  if (!existsSync(Y4M)) throw new Error('tests/e2e/person.y4m missing: run `npm run e2e:setup`');
+  if (!video.endsWith('.y4m') && !existsSync(Y4M)) throw new Error('tests/e2e/person.y4m missing: run `npm run e2e:setup`');
   const profile = join(tmpdir(), 'meet-memes-e2e-' + process.pid + '-' + Math.random().toString(36).slice(2));
   const ctx = await chromium.launchPersistentContext(profile, {
     channel: 'chromium',
@@ -24,7 +24,7 @@ export async function open({ effect = 'blur', settings = null, harness = true, a
       `--load-extension=${EXT}`,
       '--use-fake-ui-for-media-stream',
       '--use-fake-device-for-media-stream',
-      `--use-file-for-fake-video-capture=${video === 'webcam' ? WEBCAM : Y4M}`,
+      `--use-file-for-fake-video-capture=${video.endsWith('.y4m') ? video : video === 'webcam' ? WEBCAM : Y4M}`,
       '--autoplay-policy=no-user-gesture-required',
     ],
   });

@@ -73,3 +73,25 @@ test('matchBorder shifts the fill to the colour of the room around the hole', as
   assert.equal(rgba[10 * 4], 120);
   assert.equal(rgba[0], 120, 'known pixels untouched');
 });
+
+test('buildPlate never returns a black plate: with too little known room it gives up (null)', async () => {
+  const { buildPlate } = await import('../extension/src/fx/inpaint.js');
+  const w = 40, h = 20;
+  const rgba = new Uint8ClampedArray(w * h * 4), known = new Uint8Array(w * h);
+  for (let i = 0; i < 6; i++) { known[i] = 1; rgba[i * 4] = rgba[i * 4 + 1] = rgba[i * 4 + 2] = 120; rgba[i * 4 + 3] = 255; }
+  assert.equal(buildPlate(rgba, known, w, h), null);
+});
+
+test('buildPlate fills every pixel with real room colour (no zeros left)', async () => {
+  const { buildPlate } = await import('../extension/src/fx/inpaint.js');
+  const w = 64, h = 36;
+  const rgba = new Uint8ClampedArray(w * h * 4), known = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (x < 20 || x > 44) { known[i] = 1; rgba[i * 4] = 150; rgba[i * 4 + 1] = 160 + (x % 5); rgba[i * 4 + 2] = 155; rgba[i * 4 + 3] = 255; }
+  }
+  const out = buildPlate(rgba, known, w, h);
+  let dark = 0;
+  for (let i = 0; i < w * h; i++) if (out[i * 4] + out[i * 4 + 1] + out[i * 4 + 2] < 60) dark++;
+  assert.equal(dark, 0);
+});

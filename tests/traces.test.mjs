@@ -22,6 +22,13 @@ for (const file of files) {
       const ids = replay(trace, defs).fires.map((f) => f.id);
       assert.deepEqual(ids, Array(5).fill(g[1]), `fired: ${ids.join(', ') || 'nothing'}`);
     });
+  } else if (/^real-(.+)-x(\d+)-/.test(file)) {
+    // Real-person footage (landmarks only): fires <id> exactly N times, nothing else.
+    const [, id, n] = /^real-(.+)-x(\d+)-/.exec(file);
+    test(`${file}: fires ${id} ${n} times and nothing else`, () => {
+      const ids = replay(trace, defs).fires.map((f) => f.id);
+      assert.deepEqual(ids, Array(Number(n)).fill(id), `fired: ${ids.join(', ') || 'nothing'}`);
+    });
   } else if (file.startsWith('normal-')) {
     test(`${file}: normal behaviour fires nothing`, () => {
       const fires = replay(trace, defs).fires;
