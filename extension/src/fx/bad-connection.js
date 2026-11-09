@@ -3,7 +3,7 @@
 //
 // The schedule cycles through three phases, all scaled by an intensity that ramps up over
 // rampMs (the network "gets worse"):
-//   flow    every frame arrives, but blocky (low bitrate)
+//   flow    every frame arrives, but blurry or blocky (low bitrate)
 //   choppy  frames are held 66-470 ms, some 16 px blocks keep stale content (decoder smear)
 //   freeze  1.5-4 s on the last frame; reported once as burstMs so audio can drop out too
 //
@@ -57,7 +57,7 @@ export class BadConnSchedule {
     const r = this.r, k = this.intensity(now);
 
     if (now >= this.blockUntil) {
-      this.block = r() < 0.3 * (1 - k) ? 0 : Math.round(lerp(8, 40, Math.min(1, k * (0.45 + 0.55 * r()))));
+      this.block = r() < 0.3 * (1 - k) ? 0 : Math.round(lerp(6, 30, Math.min(1, k * (0.45 + 0.55 * r()))));
       this.blockUntil = now + 300 + r() * 500;
     }
 
@@ -112,15 +112,19 @@ export function renderBadConnection(ctx, w, h, f, state) {
     return;
   }
   if (f.block > 0) {
-    const sw = Math.max(2, Math.round(w / f.block)), sh = Math.max(2, Math.round(h / f.block));
+    // Block sizes are for 720p; scale to this frame. Milder levels look like a blurry low
+    // bitrate picture, heavy ones show hard compression blocks.
+    const block = Math.max(2, f.block * h / 720);
+    const sw = Math.max(2, Math.round(w / block)), sh = Math.max(2, Math.round(h / block));
     const small = state.small = state.small && state.small.width === sw && state.small.height === sh ? state.small : new OffscreenCanvas(sw, sh);
     const sc = small.getContext('2d', { alpha: false });
     sc.imageSmoothingEnabled = true;
     sc.drawImage(ctx.canvas, 0, 0, sw, sh);
     ctx.save();
     ctx.globalCompositeOperation = 'copy';
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = f.block < 22;
     ctx.drawImage(small, 0, 0, w, h);
+    ctx.imageSmoothingEnabled = true;
     ctx.restore();
   }
   for (const s of f.stale) {

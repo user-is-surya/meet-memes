@@ -9,7 +9,10 @@ const fetchText = async (p) => (await fetch(chrome.runtime.getURL(p))).text();
 const WHATS_NEW = [
   'Memes now stay sharp with Meet’s background blur and virtual backgrounds.',
   'Meme sounds are heard by everyone in the call.',
-  'Modes: Meme, Draw and Spell (Draw and Spell are coming soon), switchable from the new 🎭 button on the Meet page or with Alt+Shift+M / D / S.',
+  'Modes: Meme, Draw and Spell, switchable from the new 🎭 button on the Meet page or with Alt+Shift+M / D / S.',
+  'Draw mode: write in the air with your finger in glowing neon ink, with an air colour palette.',
+  'Spell mode: shields, orbs, blasts, portals and channelling in three styles (Strange, Wanda, Doom).',
+  'Bad connection (Alt+Shift+B): fake a freezing, choppy call, with an optional auto-leave.',
   'Mirror mode: others see your selfie view (Alt+Shift+R).',
   'Steadier gestures with a charge ring that only you see, so memes fire when you mean them and not by accident.',
   'A rebuilt Thanos snap, Absolute Cinema, Noice and Fanum broccoli, plus new Emotional Damage and Laser eyes memes.',

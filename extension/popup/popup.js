@@ -118,6 +118,8 @@ async function main() {
     $(key).checked = !!settings[key];
     $(key).addEventListener('change', () => saveSettings({ [key]: $(key).checked }));
   }
+  $('spellStyle').value = settings.spellStyle;
+  $('spellStyle').addEventListener('change', () => saveSettings({ spellStyle: $('spellStyle').value }));
   $('badConnKind').value = settings.badConnKind;
   $('badConnKind').addEventListener('change', () => saveSettings({ badConnKind: $('badConnKind').value }));
   $('badConnAutoLeaveSec').value = String(settings.badConnAutoLeaveSec);

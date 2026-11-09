@@ -14,8 +14,13 @@ It works with Meet's background blur and virtual backgrounds.
 | **Emotional Damage**: crash zoom, red flash, the shout | One flat hand held on your chest | `Alt+Shift+7` |
 | **Laser eyes**: red flares; beams where you look | Stare wide-eyed, brows up (no hands) | `Alt+Shift+8` |
 
-**Modes:** 🎭 Meme (`Alt+Shift+M`), ✏️ Draw (`Alt+Shift+D`, coming soon), ✨ Spell (`Alt+Shift+S`, coming soon).
-Switch from the floating 🎭 button on the Meet page or the toolbar popup.
+**Modes:** 🎭 Meme (`Alt+Shift+M`), ✏️ Draw (`Alt+Shift+D`), ✨ Spell (`Alt+Shift+S`).
+Switch from the floating 🎭 button on the Meet page or the toolbar popup. The meme hotkeys above work in Meme mode.
+
+- **✏️ Draw:** point your index finger to write in the air in neon ink. Two fingers up moves without drawing, an open palm erases, both palms held clears. Hover a colour dot along the top to change colour (or `Alt+Shift+1`…`6`); `Alt+Shift+Z` undo, `Alt+Shift+C` clear. Your video is mirrored while drawing so writing reads correctly.
+- **✨ Spell:** five moves in three styles, Strange / Wanda / Doom (`Alt+Shift+1` / `2` / `3`). One palm up: **shield**. Both hands holding a ball: **orb**. Push a palm at the camera: **blast** (`Alt+Shift+4`). Draw a circle with your finger: **portal** (`Alt+Shift+5`). Both hands spread beside your head: **channel** (glowing eyes).
+- **📶 Bad connection** (`Alt+Shift+B`, any mode): blocky, freezing video and a choppy, robotic voice, so you look like you're on terrible Wi-Fi. Video, audio or both; can leave the call for you after 15 s / 30 s / 1 min.
+
 **Mirror** (`Alt+Shift+R`): others see your selfie view; meme text stays readable.
 `Alt+Shift+0` is the **panic key**: everything off instantly, camera back to normal.
 

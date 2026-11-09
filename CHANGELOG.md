@@ -7,7 +7,10 @@ Each `## x.y.z` section becomes the notes of that GitHub release.
 - Memes are drawn on the track Meet actually sends, after its background blur or virtual background, so they stay sharp. Your self-view shows exactly what others see.
 - Meme sounds are mixed into your mic for everyone to hear (never while you're muted).
 - New WebGL2 compositor with automatic quality scaling and a Canvas2D fallback.
-- Modes (Meme, Draw, Spell; Draw and Spell coming soon) with a floating 🎭 button on the Meet page, the popup, and Alt+Shift+M / D / S.
+- Modes (Meme, Draw, Spell) with a floating 🎭 button on the Meet page, the popup, and Alt+Shift+M / D / S.
+- Draw mode: write in the air with your index finger in glowing neon ink. Two fingers to move without drawing, open palm to erase, both palms to clear, an air colour palette along the top, Alt+Shift+Z undo. Your video is mirrored while drawing so writing reads correctly.
+- Spell mode: five moves (shield, orb, blast, portal, channel) in three styles: Strange, Wanda and Doom (Alt+Shift+1/2/3). Alt+Shift+4 / 5 cast a blast / portal without a gesture.
+- Bad connection (Alt+Shift+B, the 📶 button or the popup): blocky, stuttering, freezing video and a choppy, robotic voice; video only, audio only or both; optionally leaves the call after 15 s / 30 s / 1 min. Never stays on after a reload.
 - Mirror mode (Alt+Shift+R): others see your selfie view, meme text stays readable.
 - Steadier gestures: poses must hold through most detections, one meme at a time, a quiet period after each, and a charge ring only you see. Tuned against a real-person recording of normal talking.
 - Rebuilt Thanos snap (ash, dust cloud, your learned empty room with content-aware fill, never blurred; golden return), Absolute Cinema (you become the poster), Noice (real clip, tongue-click trigger, punch zoom), Fanum broccoli (plate fling, explosion behind you), Michael Scott (real clip), Feel the aura (GPU glow).

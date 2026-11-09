@@ -88,7 +88,9 @@ leaving Draw mode restores whatever you had.
 - **Strange** — orange/gold, geometric mandalas with rotating rune rings, spark showers.
 - **Wanda** — scarlet, swirling smoke-like wisps and soft hex-curl circles, mist particles.
 - **Doom** — emerald green, angular rune circles, crackling lightning arcs.
-Pick with `Alt+Shift+1/2/3` in Spell mode, the pill, or the popup (`spellStyle` setting, default Strange).
+Pick with `Alt+Shift+1/2/3` in Spell mode or the popup (`spellStyle` setting, default Strange).
+`Alt+Shift+4` casts a blast and `Alt+Shift+5` opens a portal without a gesture (like meme hotkeys; also what the
+browser test uses, since a fake camera can't make hand gestures).
 Sounds are synthesized (hum for shield/orb, whoosh + boom for blast, crackle for portal, rising drone for channel).
 
 **Non-goals:** multi-person spells, combos beyond orb → blast.
@@ -102,3 +104,17 @@ Sounds are synthesized (hum for shield/orb, whoosh + boom for blast, crackle for
 - Guide: Draw and Spell sections get real content; Utilities gets the Bad connection card.
 - Tests: unit tests for every pure piece (schedules, gesture recognisers, stroke smoothing, circle detection, audio
   degrade); browser tests that each mode changes the sent video.
+
+---
+
+## Calls made while building (2026-11-09)
+- Bad connection's audio is degraded *after* meme sounds are mixed in, so meme sounds break up too (they would on a
+  real bad line).
+- Leaving Draw mode keeps the drawing (it comes back when you return); `Alt+Shift+C` or both palms clear it.
+- Only the neon brush shipped. The phase 1–2 placeholder copy mentioned laser / fire / sparkle brushes; those are
+  not built.
+- Spell mode's sounds loop only while a held spell (shield / orb / channel) is up; they never play while muted.
+- Settings echo fix: the content script now ignores storage-change echoes while its own write is in flight (they
+  briefly flipped Draw mode back on), and only reloads memes when meme settings change.
+- Browser tests: Chrome now runs with background-throttling disabled; covered/minimised test windows had starved
+  the canvas fake cameras to 1 frame/s.

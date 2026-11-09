@@ -15,6 +15,8 @@ import { Preview, toast } from './preview.js';
 import { createTrigger, TriggerArbiter } from '../triggers/index.js';
 import { createEffect } from '../renderers/index.js';
 import { BadConnection } from './bad-connection.js';
+import { DrawMode } from '../draw/draw-mode.js';
+import { SpellMode } from '../spell/spell-mode.js';
 
 // Keep the last few warnings/errors for "Copy diagnostics" in the popup.
 const LOG = [];
@@ -97,12 +99,24 @@ class App {
       this.badConn.tick();
       if (badWas !== this.badConn.active) { badWas = this.badConn.active; if (this.pill) this.pill.update(); }
     }, 250);
+    // Apply locally at once; while the write is in flight, storage echoes of earlier writes
+    // are ignored (they would briefly undo this change, e.g. flip Draw mode back on).
+    this.pendingSaves = 0;
+    const save = (patch) => {
+      this.settings = { ...this.settings, ...patch };
+      this.applySettings();
+      this.pendingSaves++;
+      return saveSettings(patch).finally(() => { this.pendingSaves--; });
+    };
+    this.draw = new DrawMode({ getSettings: () => this.settings, save, toast: (t) => toast(t, 1500) });
+    this.spells = new SpellMode({ getSettings: () => this.settings, save, toast: (t) => toast(t, 1500), sfx: this.sfx });
     this.modes = new ModeController({
       getSettings: () => this.settings,
-      save: (patch) => { this.settings = { ...this.settings, ...patch }; this.applySettings(); return saveSettings(patch); },
+      save,
       toast: (t) => toast(t),
       onHotkey: (combo) => this.fireHotkey(combo),
       onBadConn: () => this.toggleBadConn(),
+      onTool: (name) => this.drawOn && this.draw.tool(name),
     });
 
     this.src.addEventListener('meet-memes-frame', () => this.onFrame());
@@ -113,7 +127,7 @@ class App {
       if (d.cmd === 'ring') this.overlay.show(d.id, d.progress, { x: d.x, y: d.y });
     });
     // Keep the self-view's mirror styling right as Meet re-renders it.
-    setInterval(() => this.overlay.setMirror(!!this.settings.mirror && isOn(this.settings)), 1000);
+    setInterval(() => this.overlay.setMirror(this.mirrored()), 1000);
     window.addEventListener('keydown', (e) => this.onKey(e), true);
     chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
       if (msg && msg.type === 'status') reply(this.status());
@@ -132,9 +146,12 @@ class App {
     });
     const mountPill = () => this.pill.mount().catch((err) => console.warn('[meet-memes] pill failed', err));
     if (document.body) mountPill(); else document.addEventListener('DOMContentLoaded', mountPill, { once: true });
-    onStorageChanged(async () => {
+    onStorageChanged(async (what) => {
+      if (this.pendingSaves && what === 'settings') return;
+      const prev = this.settings;
       this.settings = await getSettings();
-      await this.loadMemes();
+      // Only rebuild the memes when something about them changed (not for mode, colour, ...).
+      if (what === 'custom' || JSON.stringify(prev.memes) !== JSON.stringify(this.settings.memes)) await this.loadMemes();
       this.applySettings();
     });
 
@@ -167,14 +184,19 @@ class App {
     const on = isOn(s);
     this.root.dataset.mode = on ? s.audience : 'off';
     this.root.dataset.mirror = s.mirror ? '1' : '0';
+    this.root.dataset.activeMode = on ? s.activeMode : 'off';
     if (this.pill) this.pill.update();
     if (this.sfx) this.sfx.setVolume(s.soundVolume);
-    if (this.overlay) this.overlay.setMirror(!!s.mirror && on);
+    if (this.overlay) this.overlay.setMirror(this.mirrored());
     if (this.badConn) this.badConn.sync();
     this.enabledMemes = on ? this.memes.filter((m) => isMemeEnabled(s, m.def)) : [];
     this.gesturesOn = s.activeMode === 'meme';
-    this.needsDetection = this.gesturesOn && this.enabledMemes.some((m) => m.trigger);
-    this.needsMask = this.enabledMemes.some((m) => m.effect.needsMask);
+    this.drawOn = on && s.activeMode === 'draw';
+    if (!this.drawOn && this.draw) { this.draw.pause(); if (this.overlay) this.overlay.hide('draw-clear'); }
+    this.spellOn = on && s.activeMode === 'spell';
+    if (!this.spellOn && this.spells) this.spells.pause();
+    this.needsDetection = (this.gesturesOn && this.enabledMemes.some((m) => m.trigger)) || this.drawOn || this.spellOn;
+    this.needsMask = this.gesturesOn && this.enabledMemes.some((m) => m.effect.needsMask);
     this.wantMic = this.gesturesOn && s.snapUsesMic && this.enabledMemes.some((m) => usesSnap(m.def.trigger));
     if (!this.wantMic) this.audio.stop();
     if (!on) for (const m of this.memes) m.effect.stop();
@@ -198,7 +220,7 @@ class App {
     }
     if (this.wantMic && !this.audio.running) this.audio.start();
 
-    const mirror = !!this.settings.mirror && isOn(this.settings);
+    const mirror = this.mirrored();
     const frame = this.frame = this.compositor.frameFor(src, mirror);
     if (!this.compositor.warm && this.root.dataset.memesLoaded) this.compositor.warmup(frame);
     this.maybeDetect(now);
@@ -213,7 +235,8 @@ class App {
     active.sort((a, b) => a.effect.layer - b.effect.layer);
 
     const bad = this.badConn.videoOn;
-    const drawn = active.length || mirror || bad;
+    const spelling = this.spellOn && this.spells.busy;
+    const drawn = active.length || mirror || bad || this.drawOn || spelling;
     if (drawn) {
       const g = this.compositor.begin(frame, { now, mask: this.det.mask });
       const env = { w: frame.width, h: frame.height, now, src: frame, det: this.det, g, quality: this.compositor.quality, mirror };
@@ -228,6 +251,12 @@ class App {
           console.warn('[meet-memes] render failed', m.def.id, err);
           m.effect.stop();
         }
+      }
+      if (this.drawOn) {
+        try { this.draw.renderGL(g, env); } catch (err) { console.warn('[meet-memes] draw render failed', err); }
+      }
+      if (spelling) {
+        try { this.spells.renderGL(g, env); } catch (err) { console.warn('[meet-memes] spell render failed', err); }
       }
       this.compositor.end();
       if (bad) {
@@ -277,6 +306,13 @@ class App {
       t: now,
     };
 
+    if (this.spellOn) this.spells.update(this.det, now);
+    if (this.drawOn) {
+      this.draw.update(this.det, now);
+      const c = this.draw.clearProgress;
+      if (c > 0) this.overlay.show('draw-clear', c, { x: 0.5, y: 0.5 }); else this.overlay.hide('draw-clear');
+    }
+
     const cands = [];
     for (const m of this.enabledMemes) {
       m.effect.onDetect(this.det, this.frame);
@@ -318,8 +354,16 @@ class App {
     if (this.pill) this.pill.update();
   }
 
+  // Others see a mirrored picture: the user's choice, and always while drawing (so writing reads right).
+  mirrored() {
+    const s = this.settings;
+    return isOn(s) && (!!s.mirror || s.activeMode === 'draw');
+  }
+
   fireHotkey(combo) {
     if (!isOn(this.settings)) return false;
+    if (this.drawOn) return this.draw.hotkey(combo);
+    if (this.spellOn) return this.spells.hotkey(combo);
     const meme = this.enabledMemes.find((m) => m.def.hotkey === combo);
     if (!meme) return false;
     meme.effect.fire({ hand: { x: 0.5, y: 0.6 } }, performance.now(), { hotkey: true });

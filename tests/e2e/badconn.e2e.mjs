@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { open } from './run.mjs';
+import { open, sharpness } from './run.mjs';
 
 // Mean absolute difference between two frames (sampled), 0..255.
 function diff(a, b) {
@@ -22,36 +22,22 @@ async function heldShare(h, n = 30, gap = 100) {
   return pairs ? same / pairs : 0;
 }
 
-// Mean length of runs of identical neighbouring pixels along rows (1 = every pixel differs).
-function runLength(f) {
-  let runs = 0, px = 0;
-  for (let y = 0; y < f.h; y += 7) {
-    let run = 1;
-    for (let x = 1; x < f.w; x++) {
-      const i = (y * f.w + x) * 4, j = i - 4;
-      if (Math.abs(f.data[i] - f.data[j]) < 3 && Math.abs(f.data[i + 1] - f.data[j + 1]) < 3 && Math.abs(f.data[i + 2] - f.data[j + 2]) < 3) run++;
-      else { runs++; px += run; run = 1; }
-    }
-    runs++; px += run;
-  }
-  return px / runs;
-}
-
-test('bad connection: Alt+Shift+B makes the sent video freeze and go blocky, and again restores it', async () => {
+test('bad connection: Alt+Shift+B makes the sent video freeze and lose detail, and again restores it', async () => {
   const h = await open({ effect: 'none', video: 'webcam' });
   try {
     await h.waitForEngine(60000);
     await h.wait(2000);
     const before = await heldShare(h, 15);
-    const sharp = runLength(await h.remoteFrame());
+    const sharp = sharpness(await h.remoteFrame());
 
     await h.press('Alt+Shift+B');
     await h.wait(4500); // ramps up
     const during = await heldShare(h, 40);
-    let blocky = 0;
-    for (let i = 0; i < 6; i++) { blocky = Math.max(blocky, runLength(await h.remoteFrame())); await h.wait(300); }
+    // Blurry or blocky (low bitrate): far less fine detail than the clean picture.
+    let detail = Infinity;
+    for (let i = 0; i < 6; i++) { detail = Math.min(detail, sharpness(await h.remoteFrame())); await h.wait(300); }
     assert.ok(during > before + 0.25, `held frames: before ${before.toFixed(2)}, during ${during.toFixed(2)}`);
-    assert.ok(blocky > sharp * 2, `blockiness: sharp ${sharp.toFixed(1)}, bad ${blocky.toFixed(1)}`);
+    assert.ok(detail < sharp * 0.5, `detail: clean ${sharp.toFixed(1)}, bad ${detail.toFixed(1)}`);
 
     await h.press('Alt+Shift+B');
     await h.wait(1500);

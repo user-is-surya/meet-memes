@@ -41,12 +41,12 @@
       <p>Only one mode is on at a time. Switch from the 🎭 button on the Meet page, from the toolbar popup, or with the keyboard.</p>
       <table class="keys">
         <tr><td>🎭 Meme mode</td><td><kbd>Alt+Shift+M</kbd></td><td>Gestures trigger memes (below).</td></tr>
-        <tr><td>✏️ Draw mode</td><td><kbd>Alt+Shift+D</kbd></td><td>Draw in the air for everyone to see. <span class="soon">coming soon</span></td></tr>
-        <tr><td>✨ Spell mode</td><td><kbd>Alt+Shift+S</kbd></td><td>Doctor Strange, Wanda and Doctor Doom style magic. <span class="soon">coming soon</span></td></tr>
+        <tr><td>✏️ Draw mode</td><td><kbd>Alt+Shift+D</kbd></td><td>Draw in the air for everyone to see.</td></tr>
+        <tr><td>✨ Spell mode</td><td><kbd>Alt+Shift+S</kbd></td><td>Doctor Strange, Wanda and Doctor Doom style magic.</td></tr>
         <tr><td>⏻ Off</td><td><kbd>Alt+Shift+0</kbd></td><td>Camera untouched.</td></tr>
         <tr><td>🪞 Mirror</td><td><kbd>Alt+Shift+R</kbd></td><td>Others see you flipped, like your selfie view. Works in any mode.</td></tr>
       </table>
-      <p class="muted">Every meme also has its own hotkey (shown on its card) that works in any mode except Off, without a gesture.</p>
+      <p class="muted">In Meme mode every meme also has its own hotkey (shown on its card), no gesture needed. In Draw mode the same number keys pick ink colours, and in Spell mode they pick the spell style. <kbd>Alt+Shift+B</kbd> (bad connection) works in every mode.</p>
     </section>
 
     <section id="memes">
@@ -56,13 +56,30 @@
     </section>
 
     <section id="draw">
-      <h1>✏️ Draw mode <span class="soon">coming soon</span></h1>
-      <p>Draw in the air with your finger and everyone sees the strokes in your video: glowing neon, laser, fire trails, sparkles and more. Your video is mirrored while you draw, so your writing reads the right way round for everyone.</p>
+      <h1>✏️ Draw mode</h1>
+      <p class="lead">Write or sketch in the air with your finger; everyone sees glowing neon ink in your video. Your video is mirrored while you draw, so your writing reads the right way round for everyone (it goes back to your own mirror setting when you leave Draw mode).</p>
+      <div class="grid three">
+        <div class="tile"><div class="icon">☝️</div><h3>Draw</h3><p>Point with your index finger, other fingers folded. The ink follows your fingertip.</p></div>
+        <div class="tile"><div class="icon">✌️</div><h3>Move without drawing</h3><p>Two fingers up (index + middle). A small ring shows where your pen is.</p></div>
+        <div class="tile"><div class="icon">✋</div><h3>Erase</h3><p>Open palm. Wipes the ink under your palm, like a whiteboard eraser.</p></div>
+        <div class="tile"><div class="icon">🙌</div><h3>Clear everything</h3><p>Both palms open for one second (watch the charge ring), or <kbd>Alt+Shift+C</kbd>.</p></div>
+        <div class="tile"><div class="icon">🎨</div><h3>Colours and brush size</h3><p>Along the top of your video is a row of colour dots. Hold your fingertip on one for half a second to pick it. The last dot switches between a thin and a thick brush. Or press <kbd>Alt+Shift+1</kbd>…<kbd>6</kbd>.</p></div>
+        <div class="tile"><div class="icon">↩️</div><h3>Undo</h3><p><kbd>Alt+Shift+Z</kbd> removes your last stroke. Your drawing stays when you switch modes and comes back when you return to Draw mode.</p></div>
+      </div>
+      <p class="muted">Tips: keep your hand inside the picture and a little away from your face. Good light helps the finger tracking. Strokes stay where you drew them, they don’t follow you.</p>
     </section>
 
     <section id="spell">
-      <h1>✨ Spell mode <span class="soon">coming soon</span></h1>
-      <p>Cast Doctor Strange, Wanda and Doctor Doom style spells with five simple moves: shields, portals, blasts, time and reality spells, and masks.</p>
+      <h1>✨ Spell mode</h1>
+      <p class="lead">Five hand moves, three styles. Learn the moves once and they work in every style: <b>Strange</b> (orange mandalas and sparks), <b>Wanda</b> (scarlet swirls and mist) or <b>Doom</b> (green runes and crackling lightning). Pick the style with <kbd>Alt+Shift+1</kbd> / <kbd>2</kbd> / <kbd>3</kbd> in Spell mode, or in the popup.</p>
+      <div class="grid three">
+        <div class="tile"><div class="icon">✋</div><h3>Shield</h3><p>Hold one open palm up, facing the camera. A spinning magic circle appears on your palm and follows it until you lower your hand.</p></div>
+        <div class="tile"><div class="icon">🤲</div><h3>Orb</h3><p>Both open hands in front of your chest, facing each other with a gap between them, like holding a ball. An energy orb glows between your hands; move them apart or together to resize it.</p></div>
+        <div class="tile"><div class="icon">🫸</div><h3>Blast</h3><p>Push an open palm quickly toward the camera. A bolt flies at everyone and the screen flashes. Hotkey: <kbd>Alt+Shift+4</kbd>.</p></div>
+        <div class="tile"><div class="icon">☝️</div><h3>Portal</h3><p>Draw a circle in the air with your index finger (other fingers folded). A sparking portal opens where you drew it and stays for 6 seconds. Hotkey: <kbd>Alt+Shift+5</kbd>.</p></div>
+        <div class="tile"><div class="icon">🙌</div><h3>Channel</h3><p>Raise both hands beside your head, fingers spread wide, and hold. Your eyes glow, energy streams from your fingertips and sparks rise around you.</p></div>
+      </div>
+      <p class="muted">Held spells (shield, orb, channel) hum while they’re up; blasts and portals have their own sounds. Sounds only go out while your mic is on in Meet.</p>
     </section>
 
     <section id="utilities">

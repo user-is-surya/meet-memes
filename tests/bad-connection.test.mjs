@@ -26,7 +26,7 @@ test('bad connection schedule: most frames are held, a few get through, blocks s
   assert.ok(fresh > 0.08 && fresh < 0.6, `fresh frame share ${fresh.toFixed(2)}`);
   const blocks = frames.map((f) => f.block).filter((b) => b > 0);
   assert.ok(blocks.length > frames.length * 0.3, 'blocky most of the time');
-  assert.ok(blocks.every((b) => b >= 8 && b <= 40), 'block size 8..40 px');
+  assert.ok(blocks.every((b) => b >= 6 && b <= 30), 'block size 6..30 px (at 720p)');
 });
 
 test('bad connection schedule: has long freezes and reports each one once as a burst', () => {
